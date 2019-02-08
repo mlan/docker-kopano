@@ -15,4 +15,4 @@ if [ "$CACHE_TAG" == "latest" ]; then
 	_docker_add_tags ${version}-full
 else
 	_docker_add_tags ${version}${CACHE_TAG#latest}
-if
+fi
