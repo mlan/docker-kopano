@@ -1,0 +1,147 @@
+#!/bin/sh
+
+#
+# config
+#
+
+#
+# usage
+#
+
+usage() { echo "
+USAGE
+	conf COMMAND FILE [command-options]
+
+COMMAND
+	modify <file> <parameter statement>
+		if parameter is found modify its value
+		uncomment parameter if needed
+		Examples:
+		conf modify /etc/clamav/clamd.conf Foreground yes
+		conf modify /etc/amavisd.conf \$sa_tag_level_deflt = -999;
+
+	replace <file> <old-string> <new-string>
+		match <old-string> and relpace it with <new-string>
+		Examples:
+		conf replace /etc/amavisd.conf /var/run/clamav/clamd.sock /run/clamav/clamd.sock
+
+	uncommentsection <file> <string>
+		Remove all leading '#' starting with a line that matches <string> and
+		ending with an empty line
+		Examples:
+		conf uncommentsection /etc/amavisd.conf '# ### http://www.clamav.net/'
+
+	comment <file> <string>
+		Add leading '#' to line matching <string>
+		Examples:
+		conf comment /etc/clamav/freshclam.conf UpdateLogFile
+
+	addafter <file> <start-string> <add-string> [<stop-string>]
+		Add <add-string> after line matching <start-string> folowed by an empty line or a line matching <stop-string>
+		Examples:
+		conf addafter /etc/amavisd.conf '@local_domains_maps' '$inet_socket_bind = '\''127.0.0.1'\'';'
+
+	fixmissing <file> <source> [<source>]
+		If <file> is missing create it using the first found <source>
+ 		Examples:
+		conf fixmissing /etc/php/7.?/apache2/conf.d/kopano.ini /etc/php/7.?/mods-available/kopano.ini /etc/php5/conf.d/kopano.ini
+FILE
+	full path to file which will be edited in place
+"
+}
+
+#
+# commands
+#
+
+_escape() { echo "$@" | sed 's|/|\\\/|g' | sed 's|\$|\\\$|g' | sed "s/""'""/\\\x27/g" ;}
+_exglob() { echo $(ls -d $(dirname $1))/$(basename $1) ;}
+
+modify() {
+	local cfg_file=$1
+	shift
+	local lhs="$1"
+	shift
+	local eq=
+	local rhs=
+	if [ "$1" = "=" ]; then
+		eq="$1"
+		shift
+		rhs="$(_escape $@)"
+	else
+		rhs="$(_escape $@)"
+	fi
+	echo 's/.*('"$lhs"'\s*'"$eq"'\s*)[^ ]+(.*)/\1'"$rhs"'\2/g' $cfg_file
+	sed -ri 's/.*('"$lhs"'\s*'"$eq"'\s*)[^ ]+(.*)/\1'"$rhs"'\2/g' $cfg_file
+}
+
+replace() {
+	local cfg_file=$1
+	local old="$(_escape $2)"
+	local new="$(_escape $3)"
+	echo 's/'"$old"'/'"$new"'/g' $cfg_file
+	sed -i 's/'"$old"'/'"$new"'/g' $cfg_file
+}
+
+addafter() {
+	local cfg_file=$1
+	local start="$(_escape $2)"
+	local new="$(_escape $3)"
+	local stop="$(_escape $4)"
+	if [ -z "$stop" ]; then
+		echo '/'"$start"'/!{p;d;}; $!N;s/\n\s*$/\n'"$new"'\n/g' $cfg_file
+		sed -i '/'"$start"'/!{p;d;}; $!N;s/\n\s*$/\n'"$new"'\n/g' $cfg_file
+	else
+		echo '/'"$start"'/!{p;d;}; $!N;s/\n(.*'"$stop"'.*)/\n'"$new"'\n\1/g' $cfg_file
+		sed -ri '/'"$start"'/!{p;d;}; $!N;s/\n(.*'"$stop"'.*)/\n'"$new"'\n\1/g' $cfg_file
+	fi
+
+}
+
+comment() {
+	local cfg_file=$1
+	local string="$2"
+	sed -i 's/^'"$string"'/s/^/#/g' $cfg_file
+}
+
+uncommentsection() {
+	local cfg_file=$1
+	local startline="$(_escape $2)"
+	echo '/^'"$startline"'$/,/^\s*$/s/^#*//g' $cfg_file
+	sed -i '/^'"$startline"'$/,/^\s*$/s/^#*//g' $cfg_file
+}
+
+fixmissing() {
+	local cfg_file=$(_exglob $1)
+	shift
+	if [ ! -e $cfg_file ]; then
+		for src_file in $@; do
+			echo "CHECKING:$src_file"
+			if [ -e $(_exglob $src_file) ]; then
+				echo "FOUND:$(_exglob $src_file)"
+				ln -s $(_exglob $src_file) $cfg_file
+				break
+			fi
+		done
+	fi
+}
+
+cli_and_exit() {
+	if [ "$(basename $0)" = conf ]; then
+		local cmd=$1
+		if [ -n "$cmd" ]; then
+			shift
+			echo CMD:$cmd ARG:"$@"
+			$cmd "$@"
+		else
+			usage
+		fi
+		exit 0
+	fi
+}
+
+#
+# allow command line interface
+#
+
+cli_and_exit "$@"
