@@ -1,0 +1,18 @@
+#!/usr/bin/env bash
+# hooks/post_push
+
+version=$(assets/kopano-webaddr.sh -VV)
+
+_docker_add_tags() {
+	local tag="$1"
+	docker tag $IMAGE_NAME $DOCKER_REPO:$tag
+	docker push $DOCKER_REPO:$tag
+}
+
+if [ "$CACHE_TAG" == "latest" ]; then
+	_docker_add_tags latest-full
+	_docker_add_tags ${version}
+	_docker_add_tags ${version}-full
+else
+	_docker_add_tags ${version}${CACHE_TAG#latest}
+if
