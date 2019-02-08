@@ -5,6 +5,7 @@ version=$(assets/kopano-webaddr.sh -VV)
 
 _docker_add_tags() {
 	local tag="$1"
+	echo "hooks/post_push called with IMAGE_NAME=${DOCKER_REPO}:${CACHE_TAG}, so we will tag=$tag"
 	docker tag $IMAGE_NAME $DOCKER_REPO:$tag
 	docker push $DOCKER_REPO:$tag
 }
