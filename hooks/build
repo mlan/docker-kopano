@@ -1,7 +1,11 @@
 #!/bin/bash
 # hooks/build
-# $DOCKER_REPO var is injected into the build environment
+# $DOCKER_REPO and $CACHE_TAG are injected into the build environment
 
-docker build --target kopano-core -t ${DOCKER_REPO}:latest-core .
-docker build --target kopano-full -t ${DOCKER_REPO}:latest .
-docker build --target kopano-debugtools -t ${DOCKER_REPO}:latest-debugtools .
+case $CACHE_TAG in
+	latest-core)  		bld_target=kopano-core ;;
+	latest) 			bld_target=kopano-full ;;
+	latest-debugtools)	bld_target=kopano-debugtools ;;
+esac
+
+docker build --target $bld_target -t ${DOCKER_REPO}:${CACHE_TAG} .

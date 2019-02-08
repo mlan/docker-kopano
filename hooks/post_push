@@ -9,10 +9,12 @@ _docker_add_tags() {
 	docker push $DOCKER_REPO:$tag
 }
 
-if [ "$CACHE_TAG" == "latest" ]; then
+if [[ "$CACHE_TAG" == "latest" ]]; then
+	_docker_add_tags latest
 	_docker_add_tags latest-full
 	_docker_add_tags ${version}
 	_docker_add_tags ${version}-full
 else
+	_docker_add_tags ${CACHE_TAG}
 	_docker_add_tags ${version}${CACHE_TAG#latest}
 fi
