@@ -5,17 +5,17 @@ version=$(assets/kopano-webaddr.sh -VV)
 
 _docker_add_tags() {
 	local tag="$1"
-	echo "hooks/post_push called with IMAGE_NAME=${DOCKER_REPO}:${CACHE_TAG}, so we will use tag=$tag"
+	echo "hooks/post_push called with IMAGE_NAME=${DOCKER_REPO}:${DOCKER_TAG}, so we will use tag=$tag"
 	docker tag $IMAGE_NAME $DOCKER_REPO:$tag
 	docker push $DOCKER_REPO:$tag
 }
 
-if [[ "$CACHE_TAG" == "full" ]]; then
+if [[ "$DOCKER_TAG" == "full" ]]; then
 	_docker_add_tags latest
 	_docker_add_tags latest-full
 	_docker_add_tags ${version}
 	_docker_add_tags ${version}-full
 else
-	_docker_add_tags latest-${CACHE_TAG}
-	_docker_add_tags ${version}-${CACHE_TAG}
+	_docker_add_tags latest-${DOCKER_TAG}
+	_docker_add_tags ${version}-${DOCKER_TAG}
 fi
