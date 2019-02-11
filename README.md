@@ -23,9 +23,9 @@ The mlan/kopano repository contains a multi staged built. You select which build
 
 The version part of the tag is `latest`  or the combined revision numbers of the nightly kopano-core and kopano-webapp package suits that  was available when building this image. For example, `8.7.80-3.5.2` indicates that the image was built using the 8.7.80 version of Kopano core and 3.5.2 version of Kopano webapp.
 
-The build part of the tag is one of  `-full `, `-debugtools` , `-core` and soon also `-webapp`. The image with tag ending in `-full` or without ending contain Kopano core components, as well as, the Kopano webapp and z-push. The image with tag ending in `-debugtools` also contains some debug tools. The image with tag ending in `-core` contains the kopano-core components proving the server and imap, pop3 and ical access. The image with tag ending in `-webapp` contains the Kopano webapp and z-push proving web and active sync service which will depend on a kopano server running in a separate container or elsewhere. 
+The build part of the tag is one of  `full `, `debugtools` , `core` and soon also `webapp`. The image with tag  `full` or without ending contain Kopano core components, as well as, the Kopano webapp and z-push. The image with tag  `debugtools` also contains some debug tools. The image with tag  `core` contains the kopano-core components proving the server and imap, pop3 and ical access. The image with tag  `webapp` contains the Kopano webapp and z-push proving web and active sync service which will depend on a kopano server running in a separate container or elsewhere. 
 
-To exemplify the usage of the tags, lets assume that the latest version tag is `8.7.80-3.5.2`. In this case `latest`,  `8.7.80-3.5.2`,  `latest-full` and  `8.7.80-3.5.2-full` all identify the same image.  
+To exemplify the usage of the tags, lets assume that the latest version tag is `8.7.80-3.5.2`. In this case `latest`,  `8.7.80-3.5.2`, `full`, `latest-full` and  `8.7.80-3.5.2-full` all identify the same image.  
 
 # Usage
 
@@ -37,16 +37,17 @@ docker run -d --name mail-app -p 80:80 mlan/kopano
 
 ## Docker compose example
 
-An example of how to configure an web mail server using docker compose is given below. It defines four services, `mail-app`, `mail-mta`, `mail-db` and `auth`, which are the web mail server, the mail transfer agent, the SQL database and authentication respectively. 
+An example of how to configure an web mail server using docker compose is given below. It defines five services, `mail-app`, `mail-mta`, `mail-db`, `auth` and `proxy`, which are the web mail server, the mail transfer agent, the SQL database, authentication and reverse proxy respectively. 
 
 ```yaml
 version: '3.7'
 
 services:
   mail-app:
-    image: mlan/kopano:8.7.80-3.5.2
+    image: mlan/kopano
     restart: unless-stopped
     networks:
+      - proxy
       - backend
     ports:
       - "80:80"
@@ -64,7 +65,7 @@ services:
       - LDAP_HOST=auth
       - MYSQL_HOST=mail-db
       - SMTP_SERVER=mail-mta
-      - LDAP_SEARCH_BASE=${LDAP_BASE}
+      - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
       - LDAP_USER_TYPE_ATTRIBUTE_VALUE=kopano-user
       - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=kopano-group
       - LDAP_USER_SEARCH_FILTER=(kopanoAccount=1)
@@ -77,19 +78,25 @@ services:
       - mail-sync:/var/lib/z-push
 
   mail-mta:
-    image: mlan/postfix-amavis:3.8
+    image: mlan/postfix-amavis
     restart: unless-stopped
     hostname: ${MAIL_SRV-mx}.${MAIL_DOMAIN-docker.localhost}
     networks:
       - backend
     ports:
       - "25:25"
+    labels:
+      - traefik.enable=true
+      - traefik.frontend.rule=Host:${MAIL_SRV-mx}.${MAIL_DOMAIN-docker.localhost}
+      - traefik.docker.network=${COMPOSE_PROJECT_NAME}_proxy
+      - traefik.port=80
     depends_on:
       - auth
     environment:
+      - MESSAGE_SIZE_LIMIT=${MESSAGE_SIZE_LIMIT-25600000}
       - LDAP_HOST=auth
-      - DAGENT_TRANSPORT=lmtp:mail-app:2003
-      - SMTP_RELAY_HOSTAUTH=${SMTP_RELAY_HOSTAUTH}
+      - VIRTUAL_TRANSPORT=lmtp:mail-app:2003
+      - SMTP_RELAY_HOSTAUTH=${SMTP_RELAY_HOSTAUTH-}
       - SMTP_TLS_SECURITY_LEVEL=${SMTP_TLS_SECURITY_LEVEL-}
       - SMTP_TLS_WRAPPERMODE=${SMTP_TLS_WRAPPERMODE-no}
       - LDAP_USER_BASE=${LDAP_USEROU},${LDAP_BASE}
@@ -120,7 +127,7 @@ services:
       - mail-db:/var/lib/mysql
 
   auth:
-    image: mlan/openldap:1.0
+    image: mlan/openldap:1
     restart: unless-stopped
     networks:
       - backend
@@ -130,7 +137,50 @@ services:
       - auth-conf:/srv/conf
       - auth-data:/srv/data
 
+  proxy:
+    image: traefik:alpine
+    restart: unless-stopped
+    command:
+      - "--api"
+      - "--docker"
+      - "--defaultentrypoints=http,https"
+      - "--entrypoints=Name:http Address::80 Redirect.EntryPoint:https"
+      - "--entrypoints=Name:https Address::443 TLS"
+      - "--retry"
+      - "--docker.domain=${DOMAIN-docker.localhost}"
+      - "--docker.exposedbydefault=false"
+      - "--docker.watch=true"
+      - "--acme"
+      - "--acme.email=${CERTMASTER-certmaster}@${DOMAIN-docker.localhost}"
+      - "--acme.entrypoint=https"
+      - "--acme.onhostrule=true"
+      - "--acme.storage=/acme/acme.json"
+      - "--acme.httpchallenge"
+      - "--acme.httpchallenge.entrypoint=http"
+      - "--loglevel=ERROR"
+    cap_drop:
+      - all
+    cap_add:
+      - net_bind_service
+    networks:
+      - proxy
+    ports:
+      - "80:80"       # The HTTP port
+      - "443:443"     # The HTTPS port
+    labels:
+      - traefik.enable=true
+      - traefik.docker.network=${COMPOSE_PROJECT_NAME}_proxy
+      - traefik.port=8080
+      - traefik.frontend.passHostHeader=true
+      - traefik.frontend.rule=Host:monitor.${DOMAIN-docker.localhost}
+      - traefik.frontend.auth.basic=${PROXY_USER-admin}:${PROXY_PASSWORD-secret}
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - proxy-acme:/acme
+      - /dev/null:/traefik.toml
+
 networks:
+  proxy:
   backend:
 
 volumes:
@@ -139,6 +189,7 @@ volumes:
   mail-db:
   mail-mta:
   mail-sync:
+  proxy-acme:
 
 ```
 
@@ -194,7 +245,7 @@ When creating the SQL container you can use environment variables to initiate it
 
 There are at least three directories which should be considered mounted; the configuration files, `/etc/kopano`, the mail attachments, if they are kept in files, `/var/lib/kopano/attachments` and the active sync device states, if they are kept in files, `/var/lib/z-push`.
 
-## Authentication `USER_PLUGIN`
+## User authentication `USER_PLUGIN`
 
 Kopano supports three different ways to manage user authentication. Use the `USER_PLUGIN` environment variable to select the source of the user base. Possible values are: `db` (default), `ldap` and `unix`.
 
@@ -266,4 +317,4 @@ TCP Port number for smtp_server.  Default: `SMTP_PORT=25`
 
 ### Configuring postfix
 
-The Kopano server listens to the port 2003 and expect the LMTP protocol. For Postfix you can define `DAGENT_TRANSPORT=lmtp:mail-app:2003` assuming the `mlan/kopano` container is named `mail-app`
+The Kopano server listens to the port 2003 and expect the LMTP protocol. For Postfix you can define `VIRTUAL_TRANSPORT=lmtp:mail-app:2003` assuming the `mlan/kopano` container is named `mail-app`
