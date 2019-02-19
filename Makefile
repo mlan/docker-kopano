@@ -3,6 +3,7 @@
 BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04 --build-arg ARCH=amd64
 IMG_REPO ?= mlan/kopano
 IMG_VER  ?= $(shell assets/kopano-webaddr.sh -VV)
+IMG_CMD  ?= /bin/bash
 
 CNT_NAME ?= kopano-default
 CNT_PORT ?= -p 80:80
@@ -11,6 +12,9 @@ CNT_VOL  ?=
 
 .PHONY: build build-all bulid-core build-full build-debugtools \
 	variables push shell exec run run-fg start stop rm-container rm-image release logs
+
+variables:
+	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
 
 build: Dockerfile
 	docker build $(BLD_ARG) --target kopano-full -t $(IMG_REPO)\:$(IMG_VER) .
@@ -34,18 +38,14 @@ build-debugtools: Dockerfile
 	-t $(IMG_REPO)\:$(IMG_VER)-debugtools \
 	-t $(IMG_REPO)\:latest-debugtools .
 
-variables:
-	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
-
-
 push:
 	docker push $(IMG_REPO)\:$(IMG_VER)
 
 shell:
-	docker run --rm --name $(CNT_NAME)-$(CNT_INST) -i -t $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER) /bin/bash
+	docker run --rm --name $(CNT_NAME)-$(CNT_INST) -i -t $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER) $(IMG_CMD)
 
 exec:
-	docker exec -it $(CNT_NAME) /bin/bash
+	docker exec -it $(CNT_NAME) $(IMG_CMD)
 
 run-fg:
 	docker run --rm --name $(CNT_NAME) $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER)
@@ -67,5 +67,3 @@ rm-image:
 
 release: build
 	make push -e IMG_VER=$(IMG_VER)
-
-default: build

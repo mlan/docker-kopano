@@ -27,7 +27,7 @@ inform() {
 
 init_service() {
 	# create runit 'run' script for service
-	# if service is part of kopano suite alos make the 'run' script
+	# if service is part of kopano suite also make the 'run' script
 	# delete lingering pid files, which appears to happen to kopano-search
 	local cmd="$1"
 	shift

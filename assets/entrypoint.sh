@@ -5,7 +5,9 @@
 #
 
 docker_build_runit_root=${docker_build_runit_root-/etc/service}
+kopano_user=kopano
 kopano_cfg_dir=/etc/kopano
+kopano_atch_dir=/var/lib/kopano/attachments
 zpush_cfg_dir=/usr/share/z-push
 server_cfg_file=$kopano_cfg_dir/server.cfg
 ldap_cfg_file=$kopano_cfg_dir/ldap.cfg
@@ -40,6 +42,20 @@ inform() {
 	echo -e "$f_bold${f_green}INFO ($name)${f_norm} $@"
 }
 
+fixatr() {
+	# make sure all files are rw by user $kopano_user
+	for dir in $@; do
+		if [ -n "$(find $dir ! -user $kopano_user -print -exec chown -h $kopano_user: {} \;)" ]; then
+			inform "Changed owner to $kopano_user for some files in $dir"
+		fi
+		if [ -n "$(find -L $dir ! -user $kopano_user -print -exec chown $kopano_user: {} \;)" ]; then
+			inform "Changed owner to $kopano_user for some files in $dir"
+		fi
+		if [ -n "$(find -H $dir ! -perm -u+rw -print -exec chmod u+rw {} \;)" ]; then
+			inform "Changed permision to rw for some files in $dir"
+		fi
+	done
+}
 
 #
 # kopano now installs without any cfg files, so we just write custom values
@@ -97,6 +113,7 @@ loglevel() {
 #
 
 define_formats
+fixatr $kopano_atch_dir
 kopano_cfg
 php_cfg
 loglevel

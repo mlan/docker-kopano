@@ -12,10 +12,8 @@ _docker_add_tags() {
 
 if [[ "$DOCKER_TAG" == "full" ]]; then
 	_docker_add_tags latest
-	_docker_add_tags latest-full
 	_docker_add_tags ${version}
-	_docker_add_tags ${version}-full
+	_docker_add_tags full-${version}
 else
-	_docker_add_tags latest-${DOCKER_TAG}
-	_docker_add_tags ${version}-${DOCKER_TAG}
+	_docker_add_tags ${DOCKER_TAG}-${version}
 fi

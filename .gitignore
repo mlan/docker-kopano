@@ -1,4 +1,3 @@
-deb
-tmp
 *.swp
-local_*
+local*
+*private

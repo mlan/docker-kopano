@@ -1,9 +1,10 @@
-# To Do
+# Road map
 
-## 1) apache2 runit script not working properly
+## apache2 runit script not working properly
+
 See: https://github.com/phusion/baseimage-docker/issues/271
 
-## 2) Improve healthcheck
+## Improve healthcheck
 Verify the user anonymously.
 ```bash
 ldapsearch -h dockerhost -xLLL -b dc=circuit-factory,dc=com '(kopanoAccount=1)'

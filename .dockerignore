@@ -2,5 +2,7 @@
 .gitignore
 .github
 .gitattributes
-READMETEMPLATE.md
-README.md
+demo
+*.md
+local*
+*private

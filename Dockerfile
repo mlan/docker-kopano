@@ -88,7 +88,8 @@ RUN	mkdir -p $docker_build_deb_dir \
 	&& for i in $(seq ${docker_build_passes}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
 	&& dpkg --install --force-depends --skip-same-version --recursive $docker_build_deb_dir \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
-#	&& rm -rf $docker_build_deb_dir \
+	&& mkdir -p /var/lib/kopano/attachments && chown kopano: /var/lib/kopano/attachments \
+	&& rm -rf $docker_build_deb_dir \
 	&& setup-runit.sh \
 	"kopano-dagent -l" \
 	"kopano-gateway -F" \
@@ -155,7 +156,7 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php7.2 
 #	&& a2disconf other-vhosts-access-log \
 	&& a2dissite 000-default.conf \
 	&& a2ensite kopano-webapp \
-#	&& rm -rf $docker_build_deb_dir \
+	&& rm -rf $docker_build_deb_dir \
 	&& setup-runit.sh "apache2ctl -D FOREGROUND -k start"
 #
 # Ports
@@ -187,8 +188,8 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST} ${REL})" \
 	&& echo "deb $debaddr/ /" > /etc/apt/sources.list.d/z-push.list \
 	&& wget -qO - $debaddr/Release.key | apt-key add - \
-	&& mkdir -p /var/lib/z-push && chown www-data:www-data /var/lib/z-push \
-	&& mkdir -p /var/log/z-push && chown www-data:www-data /var/log/z-push \
+	&& mkdir -p /var/lib/z-push && chown www-data: /var/lib/z-push \
+	&& mkdir -p /var/log/z-push && chown www-data: /var/log/z-push \
 	&& apt-get update && apt-get install --yes --no-install-recommends \
 	z-push-backend-kopano \
 	z-push-kopano \
