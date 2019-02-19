@@ -1,3 +1,6 @@
+# v1.1.1
+- Make sure the .env settings are honored also for MYSQL
+
 # v1.1.0
 
 - Reversed tag naming scheme. now `full-8.7.80-3.5.2` instead of ~~8.7.80-3.5.2-full~~
