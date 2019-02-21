@@ -1,5 +1,10 @@
 # The `mlan/kopano` repository
 
+![docker build](https://img.shields.io/docker/build/mlan/kopano.svg?label=build&style=popout-square&logo=docker)
+![MicroBadger Size](https://img.shields.io/microbadger/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
+![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
+![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
+
 This (non official) repository provides dockerized web mail service as well as ActiveSync, ICAL, IMAP and POP3 service. It is based on [Kopano]() core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
 
 Hopefully this repository can be retired once the Kopano community make official images available. There is some evidence of such activity on [dockerhub:kopano](https://hub.docker.com/u/kopano).
