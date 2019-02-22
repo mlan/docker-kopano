@@ -41,6 +41,9 @@ build-debugtools: Dockerfile
 push:
 	docker push $(IMG_REPO)\:$(IMG_VER)
 
+version:
+	assets/kopano-webaddr.sh -VV
+
 shell:
 	docker run --rm --name $(CNT_NAME)-$(CNT_INST) -i -t $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER) $(IMG_CMD)
 

@@ -5,11 +5,11 @@
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
 
-This (non official) repository provides dockerized web mail service as well as ActiveSync, ICAL, IMAP and POP3 service. It is based on [Kopano]() core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
+This (non official) repository provides dockerized web mail service as well as ActiveSync, ICAL, IMAP and POP3 service. It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
 
-Hopefully this repository can be retired once the Kopano community make official images available. There is some evidence of such activity on [dockerhub:kopano](https://hub.docker.com/u/kopano).
+Hopefully this repository can be retired once the Kopano community make official images available. To learn more about this activity see [zokradonh/kopano-docker](https://github.com/zokradonh/kopano-docker).
 
-## Feature overview
+## Features
 
 Brief feature list follows below
 
@@ -18,12 +18,12 @@ Brief feature list follows below
 - Multi-staged build providing the images `full`, `debugtools` and `core`
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
-- Built in utility script `conf` helping configuring Kopano components, WebApp and Z-Push
+- Built in utility script [conf](assets/conf) helping configuring Kopano components, WebApp and Z-Push
 - Health check
 - Hook for theming
 - Demo based on `docker-compose.yml` and `Makefile` files
 
-## Tags overview
+## Tags
 
 The `mlan/kopano` repository contains a multi staged built. You select which build using the appropriate tag.
 
@@ -52,7 +52,7 @@ The docker compose example below is used to demonstrate how to configure these s
 
 ## Docker compose example
 
-An example of how to configure an web mail server using docker compose is given below. It defines 4 services, `mail-app`, `mail-mta`, `mail-db` and `auth`, which are the web mail server, the mail transfer agent, the SQL database and LDAP authentication respectively.
+An example of how to configure an web mail server using [docker compose](https://docs.docker.com/compose) is given below. It defines 4 services, `mail-app`, `mail-mta`, `mail-db` and `auth`, which are the web mail server, the mail transfer agent, the SQL database and LDAP authentication respectively.
 
 ```yaml
 version: '3.7'
@@ -143,7 +143,7 @@ volumes:
   mail-sync:
 ```
 
-This repository contains a `demo` directory which hold the `docker-compose.yml` file as well as a `Makefile` which might come handy. From within the `demo` directory you can start the `mlan/kopano` container simply by typing:
+This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. From within the [demo](demo) directory you can start the `mlan/kopano` container simply by typing:
 
 ```bash
 make init
@@ -159,7 +159,7 @@ make test
 
 When you create the `mlan/kopano` container, you can adjust the configuration of the Kopano server by passing one or more environment variables or on the docker run command line. Note that any pre-existing configuration files within the container will be left untouched.
 
-To see all available configuration variables you can run `man` within the container by for example using the `Makefile` described above:
+To see all available configuration variables you can run `man` within the container by for example using the [Makefile](demo/Makefile) described above:
 
 ```bash
 make mail-app-man_server
