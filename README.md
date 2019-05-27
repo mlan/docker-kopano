@@ -148,7 +148,7 @@ This repository contains a [demo](demo) directory which hold the [docker-compose
 make init
 ```
 
-Then you can assess WebApp on the URL [`http://localhost:8080`](http://localhost:8080) and log in with the user name `demo` and password `demo` . You can send a test email by typing:
+Then you can assess WebApp on the URL [`http://localhost:8080`](http://localhost:8080) and log in with the user name `demo` and password `demo` . You can send yourself a test email by typing:
 
 ```bash
 make test

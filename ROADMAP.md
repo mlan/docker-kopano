@@ -4,6 +4,17 @@
 
 See: https://github.com/phusion/baseimage-docker/issues/271
 
+We now use:
+```bash
+apache2ctl -D FOREGROUND -k start"
+```
+
+try:
+```bash
+source /etc/apache2/envvars
+exec /usr/sbin/apache2 -DFOREGROUND
+```
+
 ## Improve healthcheck
 Verify the user anonymously.
 ```bash
