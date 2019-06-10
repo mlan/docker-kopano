@@ -9,7 +9,7 @@ _debroot="http://repo.z-hub.io/z-push:"
 _component="core"
 _stage="final"
 _dist="debian"
-_rel="8"
+_rel="9"
 _arch="amd64"
 
 #
@@ -36,8 +36,8 @@ webaddr_kopano() {
 debaddr_zpush() {
 	local stage="${1-$_stage}"
 	local debroot="${2-$_debroot}"
-        local dist=$(captialize "${3-$_dist}")
-        local rel=$(decimalise "${4-$_rel}")
+	local dist=$(captialize "${3-$_dist}")
+	local rel=$(decimalise "${4-$_rel}")
 	echo "$debroot/$stage/${dist}_${rel}"
 }
 

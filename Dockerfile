@@ -40,7 +40,7 @@ FROM	base AS base-man
 # Reinstall all currently installed packages in order to get the man pages back
 #
 ENV	DEBIAN_FRONTEND=noninteractive
-RUN	rm /etc/dpkg/dpkg.cfg.d/excludes \
+RUN	rm -f /etc/dpkg/dpkg.cfg.d/excludes \
 	&& apt-get update \
 	&& dpkg -l | grep ^ii | cut -d' ' -f3 | xargs apt-get install -y --reinstall \
 	&& apt-get install --yes --no-install-recommends \
@@ -132,7 +132,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 #
 # Install Kopano webapp
 #
-RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php7.2 \
+RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& mkdir -p $docker_build_deb_dir \
 	&& webaddr=$(kopano-webaddr.sh webapp \
 	https://download.kopano.io/community ${DIST} ${REL} all) \

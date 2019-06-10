@@ -7,7 +7,7 @@ IMG_CMD  ?= /bin/bash
 
 CNT_NAME ?= kopano-default
 CNT_PORT ?= -p 80:80
-CNT_ENV  ?= 
+CNT_ENV  ?=
 CNT_VOL  ?=
 
 .PHONY: build build-all bulid-core build-full build-debugtools \
@@ -70,3 +70,7 @@ rm-image:
 
 release: build
 	make push -e IMG_VER=$(IMG_VER)
+
+build-show-version:
+	# core-webapp
+	assets/kopano-webaddr.sh -VV
