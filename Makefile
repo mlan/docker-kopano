@@ -11,7 +11,7 @@ CNT_ENV  ?=
 CNT_VOL  ?=
 
 .PHONY: build build-all bulid-core build-full build-debugtools \
-	variables push shell exec run run-fg start stop rm-container rm-image release logs
+	variables push shell exec run run-fg stop rm-container rm-image release logs
 
 variables:
 	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
@@ -71,6 +71,3 @@ rm-image:
 release: build
 	make push -e IMG_VER=$(IMG_VER)
 
-build-show-version:
-	# core-webapp
-	assets/kopano-webaddr.sh -VV
