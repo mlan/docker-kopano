@@ -1,6 +1,7 @@
 # The `mlan/kopano` repository
 
-![MicroBadger Size](https://img.shields.io/microbadger/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
+![travis-ci test](https://img.shields.io/travis/mlan/docker-kopano.svg?label=build&style=popout-square&logo=travis)
+![image Size](https://img.shields.io/microbadger/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
 
