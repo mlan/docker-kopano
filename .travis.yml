@@ -6,9 +6,5 @@ services:
 install:
   - make build-all
 
-#before_script:
-#  - sudo apt-get update -qq
-#  - sudo apt-get install -y ldap-utils openssl jq
-
-#script:
-#  - make test_1
+script:
+  - make version
