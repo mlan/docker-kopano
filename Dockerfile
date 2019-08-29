@@ -1,10 +1,11 @@
+#
+# build arguments, amd64 is the default
+#
 ARG	DIST=ubuntu
 ARG	REL=18.04
-ARG	ARCH=amd64
+ARG	ARCH
 
-
-
-FROM	$ARCH/$DIST:$REL AS base
+FROM	${ARCH:+$ARCH/}$DIST:$REL AS base
 LABEL	maintainer=mlan
 ENV	DEBIAN_FRONTEND=noninteractive \
 	docker_build_runit_root=/etc/service \
@@ -56,11 +57,11 @@ RUN	rm -f /etc/dpkg/dpkg.cfg.d/excludes \
 #
 FROM base-man AS kopano-core
 #
-# build arguments
+# build arguments, amd64 is the default
 #
 ARG	DIST
 ARG	REL
-ARG	ARCH
+ARG	ARCH=amd64
 #
 # variables
 #
@@ -121,7 +122,6 @@ FROM kopano-core AS kopano-core-webapp
 #
 ARG	DIST
 ARG	REL
-ARG	ARCH
 #
 # variables
 #
@@ -174,7 +174,6 @@ FROM kopano-core-webapp AS kopano-full
 #
 ARG	DIST
 ARG	REL
-ARG	ARCH
 #
 # variables
 #

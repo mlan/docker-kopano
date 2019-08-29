@@ -1,6 +1,7 @@
 -include    *.mk
 
-BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04 --build-arg ARCH=amd64
+BLD_ARG  ?= 
+#BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04 --build-arg ARCH=i386
 IMG_REPO ?= mlan/kopano
 IMG_VER  ?= $(shell assets/kopano-webaddr.sh -VV)
 IMG_CMD  ?= /bin/bash
