@@ -269,7 +269,7 @@ Please note that it is not possible to rename the directory `/etc/kopano/theme/C
 
 Environment variables can be used to configure where Kopano find the Mail Transfer Agent, such as Postfix. Likewise the Mail Transfer Agent need to know where to forward emails to.
 
-####`LMTP_LISTEN`
+#### `LMTP_LISTEN`
 
 Added support (release 1.1.3) of the environment variable with default `LMTP_LISTEN=*:2003`, due to misconfiguration of `kopano-dagent` in recent releases (kopano-core 8.7.84).
 
