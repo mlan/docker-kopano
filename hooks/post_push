@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # hooks/post_push
 
-version=$(assets/kopano-webaddr.sh -VV)
+version=$(src/docker/bin/kopano-webaddr.sh -VV)
 
 _docker_add_tags() {
 	local tag="$1"

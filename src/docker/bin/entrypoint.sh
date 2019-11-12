@@ -4,7 +4,7 @@
 # config
 #
 
-docker_build_runit_root=${docker_build_runit_root-/etc/service}
+DOCKER_RUNSV_DIR=${DOCKER_RUNSV_DIR-/etc/service}
 kopano_user=kopano
 kopano_cfg_dir=/etc/kopano
 kopano_atch_dir=/var/lib/kopano/attachments
@@ -12,6 +12,7 @@ zpush_cfg_dir=/usr/share/z-push
 server_cfg_file=$kopano_cfg_dir/server.cfg
 ldap_cfg_file=$kopano_cfg_dir/ldap.cfg
 spooler_cfg_file=$kopano_cfg_dir/spooler.cfg
+dagent_cfg_file=$kopano_cfg_dir/dagent.cfg
 zpush_cfg_file=$zpush_cfg_dir/config.php
 sqlstate_cfg_file=$zpush_cfg_dir/backend/sqlstatemachine/config.php
 
@@ -22,6 +23,7 @@ sqlstate_cfg_file=$zpush_cfg_dir/backend/sqlstatemachine/config.php
 server_env_vars="MYSQL_HOST MYSQL_PORT MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD DISABLED_FEATURES USER_PLUGIN LOG_LEVEL"
 ldap_env_vars="LDAP_HOST LDAP_PORT LDAP_PROTOCOL LDAP_SEARCH_BASE LDAP_USER_TYPE_ATTRIBUTE_VALUE LDAP_GROUP_TYPE_ATTRIBUTE_VALUE LDAP_USER_SEARCH_FILTER"
 spooler_env_vars="SMTP_SERVER SMTP_PORT"
+dagent_env_vars="LMTP_LISTEN"
 zpush_env_vars="TIMEZONE USE_CUSTOM_REMOTE_IP_HEADER USE_FULLEMAIL_FOR_LOGIN STATE_MACHINE STATE_DIR LOGBACKEND LOGLEVEL LOGAUTHFAIL LOG_SYSLOG_PROGRAM LOG_SYSLOG_FACILITY SYNC_CONFLICT_DEFAULT PING_INTERVAL FILEAS_ORDER SYNC_MAX_ITEMS UNSET_UNDEFINED_PROPERTIES ALLOW_WEBSERVICE_USERS_ACCESS USE_PARTIAL_FOLDERSYNC"
 sqlstate_env_vars="STATE_SQL_ENGINE STATE_SQL_SERVER STATE_SQL_PORT STATE_SQL_DATABASE STATE_SQL_USER STATE_SQL_PASSWORD STATE_SQL_OPTIONS"
 
@@ -92,19 +94,20 @@ _php_cfg_gen() {
 }
 
 kopano_cfg() {
-	_kopano_cfg_gen $server_cfg_file $server_env_vars
-	_kopano_cfg_gen $ldap_cfg_file $ldap_env_vars
-	_kopano_cfg_gen $spooler_cfg_file $spooler_env_vars
+	_kopano_cfg_gen $server_cfg_file   $server_env_vars
+	_kopano_cfg_gen $ldap_cfg_file     $ldap_env_vars
+	_kopano_cfg_gen $spooler_cfg_file  $spooler_env_vars
+	_kopano_cfg_gen $dagent_cfg_file   $dagent_env_vars
 }
 
 php_cfg() {
-	_php_cfg_gen $zpush_cfg_file $zpush_env_vars
-	_php_cfg_gen $sqlstate_cfg_file $sqlstate_env_vars
+	_php_cfg_gen    $zpush_cfg_file    $zpush_env_vars
+	_php_cfg_gen    $sqlstate_cfg_file $sqlstate_env_vars
 }
 
 loglevel() {
 	if [ -n "$SYSLOG_LEVEL" -a $SYSLOG_LEVEL -ne 4 ]; then
-		setup-runit.sh "syslogd -n -O /dev/stdout -l $SYSLOG_LEVEL"
+		setup-runit.sh "syslogd -n -O - -l $SYSLOG_LEVEL $SYSLOG_OPTIONS"
 	fi
 }
 
@@ -119,5 +122,5 @@ php_cfg
 loglevel
 
 exec 2>&1
-exec runsvdir -P $docker_build_runit_root
+exec runsvdir -P $DOCKER_RUNSV_DIR
 

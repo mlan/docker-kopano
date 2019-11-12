@@ -1,74 +1,36 @@
 -include    *.mk
 
-BLD_ARG  ?= 
 #BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04 --build-arg ARCH=i386
-IMG_REPO ?= mlan/kopano
-IMG_VER  ?= $(shell assets/kopano-webaddr.sh -VV)
-IMG_CMD  ?= /bin/bash
+BLD_ARG  ?=
+BLD_REPO ?= mlan/kopano
+BLD_VER  ?= latest
+BLD_TGT  ?= full
+SRC_VER  ?= $(shell src/docker/bin/kopano-webaddr.sh -VV)
 
-CNT_NAME ?= kopano-default
-CNT_PORT ?= -p 80:80
-CNT_ENV  ?=
-CNT_VOL  ?=
+_version  = $(if $(findstring $(BLD_TGT),$(1)),$(2),$(if $(findstring latest,$(2)),$(1),$(1)-$(2)))
 
-.PHONY: build build-all bulid-core build-full build-debugtools \
-	variables push shell exec run run-fg stop rm-container rm-image release logs
+.PHONY:
 
 variables:
 	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
 
-build: Dockerfile
-	docker build $(BLD_ARG) --target kopano-full -t $(IMG_REPO)\:$(IMG_VER) .
+ps:
+	docker ps -a
 
-build-all: build-core build-full build-debugtools
+build-all: build_core build_full build_debugtools
 
-build-core: Dockerfile
-	docker build $(BLD_ARG) --target kopano-core \
-	-t $(IMG_REPO)\:$(IMG_VER)-core \
-	-t $(IMG_REPO)\:latest-core .
+build: build_$(BLD_TGT)
 
-build-full: Dockerfile
-	docker build $(BLD_ARG) --target kopano-full \
-	-t $(IMG_REPO)\:$(IMG_VER) \
-	-t $(IMG_REPO)\:$(IMG_VER)-full \
-	-t $(IMG_REPO)\:latest \
-	-t $(IMG_REPO)\:latest-full .
-
-build-debugtools: Dockerfile
-	docker build $(BLD_ARG) --target kopano-debugtools \
-	-t $(IMG_REPO)\:$(IMG_VER)-debugtools \
-	-t $(IMG_REPO)\:latest-debugtools .
-
-push:
-	docker push $(IMG_REPO)\:$(IMG_VER)
+build_%: Dockerfile
+	docker build $(BLD_ARG) --target $* \
+	-t $(BLD_REPO):$(call _version,$*,$(BLD_VER)) \
+	-t $(BLD_REPO):$(call _version,$*,$(SRC_VER)) .
 
 version:
-	assets/kopano-webaddr.sh -VV
+	src/docker/bin/kopano-webaddr.sh -VV
 
-shell:
-	docker run --rm --name $(CNT_NAME)-$(CNT_INST) -i -t $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER) $(IMG_CMD)
+prune:
+	docker image prune
 
-exec:
-	docker exec -it $(CNT_NAME) $(IMG_CMD)
-
-run-fg:
-	docker run --rm --name $(CNT_NAME) $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER)
-
-run:
-	docker run --rm -d --name $(CNT_NAME) $(CNT_PORT) $(CNT_VOL) $(CNT_ENV) $(IMG_REPO)\:$(IMG_VER)
-
-logs:
-	docker container logs $(CNT_NAME)
-
-stop:
-	docker stop $(CNT_NAME)
-
-rm-container:
-	docker rm $(CNT_NAME)
-
-rm-image:
-	docker image rm $(IMG_REPO):$(IMG_VER)
-
-release: build
-	make push -e IMG_VER=$(IMG_VER)
-
+clean:
+	docker images | grep $(BLD_REPO) | awk '{print $$1 ":" $$2}' | uniq | xargs docker rmi

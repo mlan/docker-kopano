@@ -8,14 +8,17 @@ ARG	ARCH
 FROM	${ARCH:+$ARCH/}$DIST:$REL AS base
 LABEL	maintainer=mlan
 ENV	DEBIAN_FRONTEND=noninteractive \
-	docker_build_runit_root=/etc/service \
-	docker_build_deb_dir=/tmp/deb \
-	docker_build_passes=1 \
+	DOCKER_BIN_DIR=/usr/local/bin \
+	DOCKER_RUNSV_DIR=/etc/service \
+	DOCKER_BUILD_DEB_DIR=/tmp/deb \
+	DOCKER_BUILD_PASSES=1 \
+	SYSLOG_OPTIONS='-S' \
 	SYSLOG_LEVEL=4
 #
-# Copy helpers
+# Copy utility scripts including entrypoint.sh to image
 #
-COPY	assets/setup-runit.sh /usr/local/bin/
+COPY	src/*/bin $DOCKER_BIN_DIR/
+
 #
 # Install helpers
 #
@@ -28,7 +31,7 @@ RUN	apt-get update && apt-get install --yes --no-install-recommends \
 	ca-certificates \
 	tar \
 	gnupg \
-	&& setup-runit.sh "syslogd -n -O /dev/stdout -l $SYSLOG_LEVEL"
+	&& setup-runit.sh "syslogd -n -O - -l $SYSLOG_LEVEL $SYSLOG_OPTIONS"
 
 
 
@@ -55,7 +58,7 @@ RUN	rm -f /etc/dpkg/dpkg.cfg.d/excludes \
 #
 # Kopano-core
 #
-FROM base-man AS kopano-core
+FROM base-man AS core
 #
 # build arguments, amd64 is the default
 #
@@ -66,49 +69,42 @@ ARG	ARCH=amd64
 # variables
 #
 ENV	DEBIAN_FRONTEND=noninteractive \
-	docker_build_runit_root=/etc/service \
-	docker_build_deb_dir=/tmp/deb \
-	docker_build_passes=1
-#
-# Copy helpers
-#
-COPY	assets/kopano-webaddr.sh /usr/local/bin/
-COPY	assets/dpkg-version.sh /usr/local/bin/
-COPY	assets/conf /usr/local/bin/
-COPY	assets/entrypoint.sh /usr/local/bin/
-COPY	assets/healthcheck.sh /usr/local/bin/
+	DOCKER_RUNSV_DIR=/etc/service \
+	DOCKER_BIN_DIR=/usr/local/bin \
+	LMTP_LISTEN=*:2003 \
+	DOCKER_BUILD_DEB_DIR=/tmp/deb \
+	DOCKER_BUILD_PASSES=1
 #
 # Install kopano-core
 #
-RUN	mkdir -p $docker_build_deb_dir \
+RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& webaddr=$(kopano-webaddr.sh core \
 	https://download.kopano.io/community ${DIST} ${REL} ${ARCH}) \
 	&& echo "$webaddr<->${DIST} ${REL} ${ARCH}<-" \
-	&& curl $webaddr | tar -xzC $docker_build_deb_dir \
+	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
 	&& apt-get update \
-	&& for i in $(seq ${docker_build_passes}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
-	&& dpkg --install --force-depends --skip-same-version --recursive $docker_build_deb_dir \
+	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
+	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
 	&& mkdir -p /var/lib/kopano/attachments && chown kopano: /var/lib/kopano/attachments \
-	&& rm -rf $docker_build_deb_dir \
+	&& rm -rf $DOCKER_BUILD_DEB_DIR \
 	&& setup-runit.sh \
 	"kopano-dagent -l" \
 	"kopano-gateway -F" \
 	"kopano-ical -F" \
-	"kopano-search -F" \
+	"-f kopano-search -F" \
 	"kopano-server -F" \
 	"kopano-spooler -F" \
-	&& setup-runit.sh --down \
-	"kopano-grapi serve" \
-	"kopano-kapid serve --log-timestamp=false" \
-	"kopano-konnectd serve --log-timestamp=false" \
-	"kopano-monitor -F" \
-	"kopano-presence -F" \
-	"kopano-spamd -F"
+	"-d kopano-grapi serve" \
+	"-d kopano-kapid serve --log-timestamp=false" \
+	"-d kopano-konnectd serve --log-timestamp=false" \
+	"-d kopano-monitor -F" \
+	"-d kopano-presence -F" \
+	"-d kopano-spamd -F"
 #
 # Entrypoint, how container is run
 #
-HEALTHCHECK --interval=5m --timeout=3s CMD healthcheck.sh
+HEALTHCHECK CMD sv status ${DOCKER_RUNSV_DIR}/*
 ENTRYPOINT ["entrypoint.sh"]
 
 
@@ -116,7 +112,7 @@ ENTRYPOINT ["entrypoint.sh"]
 #
 # Kopano-webapp
 #
-FROM kopano-core AS kopano-core-webapp
+FROM core AS core-webapp
 #
 # build arguments
 #
@@ -126,21 +122,21 @@ ARG	REL
 # variables
 #
 ENV	DEBIAN_FRONTEND=noninteractive \
-	docker_build_runit_root=/etc/service \
-	docker_build_deb_dir=/tmp/deb \
-	docker_build_passes=1
+	DOCKER_RUNSV_DIR=/etc/service \
+	DOCKER_BUILD_DEB_DIR=/tmp/deb \
+	DOCKER_BUILD_PASSES=1
 #
 # Install Kopano webapp
 #
 RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
-	&& mkdir -p $docker_build_deb_dir \
+	&& mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& webaddr=$(kopano-webaddr.sh webapp \
 	https://download.kopano.io/community ${DIST} ${REL} all) \
 	&& echo "$webaddr<->${DIST} ${REL} all<-" \
-	&& curl $webaddr | tar -xzC $docker_build_deb_dir \
+	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
 	&& apt-get update \
-	&& for i in $(seq ${docker_build_passes}); do echo "\033[1;36mKOPANO WEBAPP INSTALL PASS: $i\033[0m" \
-	&& dpkg --install --force-depends --skip-same-version --recursive $docker_build_deb_dir \
+	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO WEBAPP INSTALL PASS: $i\033[0m" \
+	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
 	&& dpkg-reconfigure php7-mapi \
 	&& conf replace /etc/kopano/webapp/config.php 'define("INSECURE_COOKIES", false);' 'define("INSECURE_COOKIES", true);' \
@@ -148,16 +144,16 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& conf replace /etc/apache2/sites-available/kopano-webapp.conf 'Alias /webapp /usr/share/kopano-webapp' '<VirtualHost *:80>\\nDocumentRoot /usr/share/kopano-webapp' \
 	&& echo '</VirtualHost>' >> /etc/apache2/sites-available/kopano-webapp.conf \
 	&& conf modify /etc/apache2/apache2.conf '^ErrorLog' syslog:user \
-	&& echo 'CustomLog "||/usr/bin/logger -t apache -i -p user.notice" vhost_combined' >> /etc/apache2/apache2.conf \
-	&& echo 'CustomLog "||/usr/bin/logger -t apache -i -p user.info" combined' >> /etc/apache2/apache2.conf \
+	&& echo 'CustomLog "||/usr/bin/logger -t apache -i -p user.debug" common' >> /etc/apache2/apache2.conf \
+	&& echo 'ServerName localhost' >> /etc/apache2/apache2.conf \
 	&& mkdir -p /etc/kopano/theme/Custom \
 	&& ln -sf /etc/kopano/theme/Custom /usr/share/kopano-webapp/plugins/. \
 #	&& conf modify /etc/apache2/apache2.conf '^LogLevel' crit \
 #	&& a2disconf other-vhosts-access-log \
 	&& a2dissite 000-default.conf \
 	&& a2ensite kopano-webapp \
-	&& rm -rf $docker_build_deb_dir \
-	&& setup-runit.sh "apache2ctl -D FOREGROUND -k start"
+	&& rm -rf $DOCKER_BUILD_DEB_DIR \
+	&& setup-runit.sh "-q -s /etc/apache2/envvars apache2 -DFOREGROUND -DNO_DETACH -k start"
 #
 # Ports
 #
@@ -168,7 +164,7 @@ EXPOSE	80 443
 #
 # Z-Push
 #
-FROM kopano-core-webapp AS kopano-full
+FROM core-webapp AS full
 #
 # build arguments
 #
@@ -178,9 +174,9 @@ ARG	REL
 # variables
 #
 ENV	DEBIAN_FRONTEND=noninteractive \
-	docker_build_runit_root=/etc/service \
-	docker_build_deb_dir=/tmp/deb \
-	docker_build_passes=1
+	DOCKER_RUNSV_DIR=/etc/service \
+	DOCKER_BUILD_DEB_DIR=/tmp/deb \
+	DOCKER_BUILD_PASSES=1
 #
 # Add Z-Push repository and install Z-Push configured to be used with kopano and apache
 #
@@ -200,7 +196,7 @@ RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST
 
 
 
-FROM kopano-full AS kopano-debugtools
+FROM full AS debugtools
 #
 # Optionaly install debug tools
 #

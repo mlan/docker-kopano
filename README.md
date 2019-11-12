@@ -18,7 +18,7 @@ Brief feature list follows below
 - Multi-staged build providing the images `full`, `debugtools` and `core`
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
-- Built in utility script [conf](assets/conf) helping configuring Kopano components, WebApp and Z-Push
+- Built in utility script [conf](src/docker/bin/conf) helping configuring Kopano components, WebApp and Z-Push
 - Health check
 - Hook for theming
 - Demo based on `docker-compose.yml` and `Makefile` files
@@ -265,9 +265,13 @@ docker exec -it mail-app conf replace /etc/kopano/webapp/config.php 'define("THE
 
 Please note that it is not possible to rename the directory `/etc/kopano/theme/Custom` within the container without further modifications.
 
-### Mail transfer agent interaction
+## Mail transfer agent interaction
 
 Environment variables can be used to configure where Kopano find the Mail Transfer Agent, such as Postfix. Likewise the Mail Transfer Agent need to know where to forward emails to.
+
+####`LMTP_LISTEN`
+
+Added support (release 1.1.3) of the environment variable with default `LMTP_LISTEN=*:2003`, due to misconfiguration of `kopano-dagent` in recent releases (kopano-core 8.7.84).
 
 #### `SMTP_SERVER`
 

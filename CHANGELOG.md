@@ -1,20 +1,31 @@
-# v1.1.2
+# 1.1.3
 
-- Update Dockerfile so that is works also for debian 9
-- Update assets/kopano-webaddr.sh now that we do not have builds for debian 8
+- The `setup-runit.sh` script now have options:  down, force, log, name, source, quiet.
+- Fixed the Apache runit script, using the new `setup-runit.sh` script. Stopping the parent process now also stops all child processes. Using the quiet option, Apache does not flood the logs anymore.
+- Added support of the environment variable `LMTP_LISTEN=*:2003`, due to misconfiguration of `kopano-dagent` in recent releases (8.7.84).
+- Simplified the health check.
+- Changed repository directory structure to a more general one.
+- Renamed some build variables, e.g., `DOCKER_RUNSV_DIR` (was `docker_build_runit_root`).
+- Cleaning up `Makefile`
+- Added more debug functionality in `demo/Makefile`
+
+# 1.1.2
+
+- Update `Dockerfile` so that is works also for Debian 9
+- Update `kopano-webaddr.sh` now that we do not have builds for Debian 8
 - Updated demo
 
-# v1.1.1
+# 1.1.1
 
 - Make sure the .env settings are honored also for MYSQL
 
-# v1.1.0
+# 1.1.0
 
 - Reversed tag naming scheme. now `full-8.7.80-3.5.2` instead of ~~8.7.80-3.5.2-full~~
 - Demo based on `docker-compose.yml` and `Makefile` files
 - Check and fix file attributes in the `/var/lib/kopano/attachments` directory
 
-# v1.0.0
+# 1.0.0
 
 - Groupware server [Kopano WebApp](https://kopano.io/)
 - ActiveSync server [Z-Push](http://z-push.org/)

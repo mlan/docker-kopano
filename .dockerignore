@@ -2,6 +2,7 @@
 .gitignore
 .github
 .gitattributes
+src/notused
 demo
 *.md
 local*
