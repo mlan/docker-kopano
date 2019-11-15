@@ -10,6 +10,11 @@ LABEL	maintainer=mlan
 ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_BIN_DIR=/usr/local/bin \
 	DOCKER_RUNSV_DIR=/etc/service \
+	DOCKER_ENTRY_DIR=/etc/entrypoint.d \
+	DOCKER_EXIT_DIR=/etc/exitpoint.d \
+	DOCKER_CONF_DIR1=/etc/kopano \
+	DOCKER_CONF_DIR2=/usr/share/z-push \
+	DOCKER_USER=kopano \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1 \
 	SYSLOG_OPTIONS='-S' \
@@ -18,6 +23,8 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 # Copy utility scripts including entrypoint.sh to image
 #
 COPY	src/*/bin $DOCKER_BIN_DIR/
+COPY	src/*/entrypoint.d $DOCKER_ENTRY_DIR/
+COPY	src/*/exitpoint.d $DOCKER_EXIT_DIR/
 
 #
 # Install helpers
@@ -102,10 +109,17 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	"-d kopano-presence -F" \
 	"-d kopano-spamd -F"
 #
+# Have runit's runsvdir start all services
+#
+CMD	runsvdir -P ${DOCKER_RUNSV_DIR}
+#
 # Entrypoint, how container is run
 #
-HEALTHCHECK CMD sv status ${DOCKER_RUNSV_DIR}/*
 ENTRYPOINT ["entrypoint.sh"]
+#
+# Check if all services are running
+#
+HEALTHCHECK CMD sv status ${DOCKER_RUNSV_DIR}/*
 
 
 
@@ -153,7 +167,7 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& a2dissite 000-default.conf \
 	&& a2ensite kopano-webapp \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
-	&& setup-runit.sh "-q -s /etc/apache2/envvars apache2 -DFOREGROUND -DNO_DETACH -k start"
+	&& setup-runit.sh "-f -s /etc/apache2/envvars -q apache2 -DFOREGROUND -DNO_DETACH -k start"
 #
 # Ports
 #

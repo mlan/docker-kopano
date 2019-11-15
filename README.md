@@ -70,7 +70,7 @@ services:
       - mail-mta
     environment:
       - USER_PLUGIN=ldap
-      - LDAP_HOST=auth
+      - LDAP_URI=ldap://auth:389/
       - MYSQL_HOST=mail-db
       - SMTP_SERVER=mail-mta
       - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
@@ -223,9 +223,11 @@ An LDAP server with user accounts configured to be used with Kopano is needed, b
 
 Once the LDAP server is up and running, the `mlan/kopano` container can be configured to use it using environment variables. In addition to the variables discussed below also set `USER_PLUGIN=ldap`.
 
-#### `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL`
+#### `LDAP_URI`
 
-These directives specify a single LDAP server to use. Defaults: `LDAP_HOST=localhost`, `LDAP_PORT=389`, `LDAP_PROTOCOL=ldap`
+Specifies the URI of one or more LDAP server(s) to use, without any DN portion, such as `ldap://server:389/`, `ldaps://server:636/` or `ldapi:///`. Defaults: `LDAP_URI=ldap://localhost:389/`.
+
+The historic directives `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL` are no longer supported (8.7.85).
 
 #### `LDAP_SEARCH_BASE`
 

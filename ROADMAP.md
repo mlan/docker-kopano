@@ -14,11 +14,7 @@ So let the Kopano and postfix containers share the `var/lib/kopano/spamd` folder
 
 Consider consolidating directories which are candidates for persistence under `/srv`.
 
-## /etc/entrypoint.d
-
-Split up initialization functions and process supervision. Process supervision stays in entrypoint.sh, whereas the initialization functions are moved to individual files in /etc/entrypoint.d.
-
-##Improve Health Check?
+## Improve Health Check?
 
 Verify the user anonymously.
 ```bash

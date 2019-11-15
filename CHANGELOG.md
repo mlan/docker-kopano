@@ -1,3 +1,9 @@
+# 1.1.4
+
+- Use `LDAP_URI` now that the historic directives `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL` are no longer supported (8.7.85).
+- Split up initialization functions and process supervision. Process supervision stays in entrypoint.sh, whereas the initialization functions are moved to individual files in /etc/entrypoint.d.
+- Apache runit script also needs `setup-runit.sh` option; force.
+
 # 1.1.3
 
 - The `setup-runit.sh` script now have options:  down, force, log, name, source, quiet.

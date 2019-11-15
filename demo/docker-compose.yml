@@ -13,7 +13,7 @@ services:
       - mail-mta
     environment:
       - USER_PLUGIN=ldap
-      - LDAP_HOST=auth
+      - LDAP_URI=ldap://auth:389/
       - MYSQL_HOST=mail-db
       - SMTP_SERVER=mail-mta
       - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}

@@ -1,126 +1,77 @@
-#!/bin/bash
+#!/usr/bin/env bash
+# set -x
+#
+# This script need to run as PID 1 allowing it to receive signals from docker
+#
+# Usage: add the folowing lines in Dockerfile
+# ENTRYPOINT ["entrypoint.sh"]
+# CMD runsvdir -P ${DOCKER_RUNSV_DIR}
+#
 
 #
-# config
+# Variables
 #
 
+DOCKER_ENTRY_DIR=${DOCKER_ENTRY_DIR-/etc/entrypoint.d}
+DOCKER_EXIT_DIR=${DOCKER_EXIT_DIR-/etc/exitpoint.d}
 DOCKER_RUNSV_DIR=${DOCKER_RUNSV_DIR-/etc/service}
-kopano_user=kopano
-kopano_cfg_dir=/etc/kopano
-kopano_atch_dir=/var/lib/kopano/attachments
-zpush_cfg_dir=/usr/share/z-push
-server_cfg_file=$kopano_cfg_dir/server.cfg
-ldap_cfg_file=$kopano_cfg_dir/ldap.cfg
-spooler_cfg_file=$kopano_cfg_dir/spooler.cfg
-dagent_cfg_file=$kopano_cfg_dir/dagent.cfg
-zpush_cfg_file=$zpush_cfg_dir/config.php
-sqlstate_cfg_file=$zpush_cfg_dir/backend/sqlstatemachine/config.php
 
 #
-# define environment variables
+# Functions
 #
 
-server_env_vars="MYSQL_HOST MYSQL_PORT MYSQL_DATABASE MYSQL_USER MYSQL_PASSWORD DISABLED_FEATURES USER_PLUGIN LOG_LEVEL"
-ldap_env_vars="LDAP_HOST LDAP_PORT LDAP_PROTOCOL LDAP_SEARCH_BASE LDAP_USER_TYPE_ATTRIBUTE_VALUE LDAP_GROUP_TYPE_ATTRIBUTE_VALUE LDAP_USER_SEARCH_FILTER"
-spooler_env_vars="SMTP_SERVER SMTP_PORT"
-dagent_env_vars="LMTP_LISTEN"
-zpush_env_vars="TIMEZONE USE_CUSTOM_REMOTE_IP_HEADER USE_FULLEMAIL_FOR_LOGIN STATE_MACHINE STATE_DIR LOGBACKEND LOGLEVEL LOGAUTHFAIL LOG_SYSLOG_PROGRAM LOG_SYSLOG_FACILITY SYNC_CONFLICT_DEFAULT PING_INTERVAL FILEAS_ORDER SYNC_MAX_ITEMS UNSET_UNDEFINED_PROPERTIES ALLOW_WEBSERVICE_USERS_ACCESS USE_PARTIAL_FOLDERSYNC"
-sqlstate_env_vars="STATE_SQL_ENGINE STATE_SQL_SERVER STATE_SQL_PORT STATE_SQL_DATABASE STATE_SQL_USER STATE_SQL_PASSWORD STATE_SQL_OPTIONS"
-
 #
-# Define helpers
+# Run all executable scipts in entry direcory
 #
-
-define_formats() {
-	name=$(basename $0)
-	f_norm="\e[0m"
-	f_bold="\e[1m"
-	f_red="\e[91m"
-	f_green="\e[92m"
-	f_yellow="\e[93m"
-}
-
-inform() {
-	echo -e "$f_bold${f_green}INFO ($name)${f_norm} $@"
-}
-
-fixatr() {
-	# make sure all files are rw by user $kopano_user
-	for dir in $@; do
-		if [ -n "$(find $dir ! -user $kopano_user -print -exec chown -h $kopano_user: {} \;)" ]; then
-			inform "Changed owner to $kopano_user for some files in $dir"
-		fi
-		if [ -n "$(find -L $dir ! -user $kopano_user -print -exec chown $kopano_user: {} \;)" ]; then
-			inform "Changed owner to $kopano_user for some files in $dir"
-		fi
-		if [ -n "$(find -H $dir ! -perm -u+rw -print -exec chmod u+rw {} \;)" ]; then
-			inform "Changed permision to rw for some files in $dir"
-		fi
-	done
-}
-
-#
-# kopano now installs without any cfg files, so we just write custom values
-# into their target cfg file
-#
-
-_kopano_cfg_gen() {
-	# do not touch existing cfg files
-	local cfg_file=$1
-	shift
-	local env_vars=$@
-	if [ ! -e $cfg_file ]; then
-		for env_var in $env_vars; do
-			if [ -n "${!env_var}" ]; then
-				inform "Setting ${env_var,,} = ${!env_var} in $cfg_file"
-				echo ${env_var,,} = ${!env_var} >> $cfg_file
-			fi
-		done
-	fi
-}
-
-_php_cfg_gen() {
-	local cfg_file=$1
-	shift
-	local env_vars=$@
-	if [ -e $cfg_file ]; then
-		for env_var in $env_vars; do
-			if [ -n "${!env_var}" ]; then
-				inform "Setting ${env_var} = ${!env_var} in $cfg_file"
-				sed -ri "s/(\s*define).+${env_var}.+/\1\(\x27${env_var}\x27, \x27${!env_var}\x27\);/g" $cfg_file
-			fi
-		done
-	fi
-}
-
-kopano_cfg() {
-	_kopano_cfg_gen $server_cfg_file   $server_env_vars
-	_kopano_cfg_gen $ldap_cfg_file     $ldap_env_vars
-	_kopano_cfg_gen $spooler_cfg_file  $spooler_env_vars
-	_kopano_cfg_gen $dagent_cfg_file   $dagent_env_vars
-}
-
-php_cfg() {
-	_php_cfg_gen    $zpush_cfg_file    $zpush_env_vars
-	_php_cfg_gen    $sqlstate_cfg_file $sqlstate_env_vars
-}
-
-loglevel() {
-	if [ -n "$SYSLOG_LEVEL" -a $SYSLOG_LEVEL -ne 4 ]; then
-		setup-runit.sh "syslogd -n -O - -l $SYSLOG_LEVEL $SYSLOG_OPTIONS"
+run_dir() {
+	local rundir=${1}
+	if [ -d "$rundir" ]; then
+		run-parts "$rundir"
 	fi
 }
 
 #
-# run
+# If the service is running, send it the TERM signal, and the CONT signal. 
+# If ./run exits, start ./finish if it exists.
+# After it stops, do not restart service.
 #
+sv_down() { sv down ${DOCKER_RUNSV_DIR}/* ;}
 
-define_formats
-fixatr $kopano_atch_dir
-kopano_cfg
-php_cfg
-loglevel
+#
+# SIGTERM handler
+# docker stop first sends SIGTERM, and after a grace period, SIGKILL.
+# use exit code 143 = 128 + 15 -- SIGTERM
+#
+term_trap() {
+	run_dir "$DOCKER_EXIT_DIR"
+	sv_down
+	exit 143
+}
+
+
+#
+# Stage 0) Register signal hanglers and redirect stderr
+#
 
 exec 2>&1
-exec runsvdir -P $DOCKER_RUNSV_DIR
+trap 'kill ${!}; term_trap' SIGTERM
 
+#
+# Stage 1) run all entry scripts in $DOCKER_ENTRY_DIR
+#
+
+run_dir "$DOCKER_ENTRY_DIR"
+
+#
+# Stage 2) run provided arguments in the background
+# Start services with: runsvdir -P ${DOCKER_RUNSV_DIR}
+#
+
+"$@" &
+
+#
+# Stage 3) wait forever so we can catch the SIGTERM
+#
+while true; do
+	tail -f /dev/null & wait ${!}
+done

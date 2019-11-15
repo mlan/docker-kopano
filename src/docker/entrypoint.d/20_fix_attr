@@ -1,0 +1,39 @@
+#!/bin/sh
+#
+# 20_fix_attr
+#
+# Make sure all files in named directories are RW by user $DOCKER_USER.
+#
+
+#
+# config
+#
+
+DOCKER_USER=${DOCKER_USER-kopano}
+DOCKER_ATCH_DIR=${DOCKER_ATCH_DIR-/var/lib/kopano/attachments}
+
+#
+# define helpers
+#
+
+inform() { printf "entrypoint[$$]: INFO:$(basename $0): $*.\n" ;}
+
+fixattr() {
+	for dir in $@; do
+		if [ -n "$(find $dir ! -user $DOCKER_USER -print -exec chown -h $DOCKER_USER: {} \;)" ]; then
+			inform "Changed owner to $DOCKER_USER for some files in $dir"
+		fi
+		if [ -n "$(find -L $dir ! -user $DOCKER_USER -print -exec chown $DOCKER_USER: {} \;)" ]; then
+			inform "Changed owner to $DOCKER_USER for some files in $dir"
+		fi
+		if [ -n "$(find -H $dir ! -perm -u+rw -print -exec chmod u+rw {} \;)" ]; then
+			inform "Changed permission to rw for some files in $dir"
+		fi
+	done
+}
+
+#
+# run
+#
+
+fixattr $DOCKER_ATCH_DIR
