@@ -12,7 +12,7 @@ variables:
 ps:
 	docker-compose ps
 
-init: auth-up wait_1 auth-add_user mail-db-up mail-mta-up wait_2 mail-app-up
+init: auth-up wait_1 auth-mod_index auth-add_user mail-db-up mail-mta-up wait_2 mail-app-up
 
 up:
 	docker-compose up -d
@@ -56,6 +56,10 @@ auth-add_user:
 	printf "dn: ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_USEROU)\n\ndn: ou=$(LDAP_GROUPOU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_GROUPOU)\n\ndn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: top\nobjectClass: inetOrgPerson\nobjectClass: $(LDAP_USEROBJ)\ncn: $(LDAP_TEST_USER)\nsn: $(LDAP_TEST_USER)\nuid: $(LDAP_TEST_USER)\nmail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)\nuidNumber: 1234\ngidNumber: 1234\nhomeDirectory: /home/$(LDAP_TEST_USER)\nuserPassword: $(LDAP_TEST_PASSWD)\n" \
 	| docker-compose exec -T auth ldap modify
 
+auth-mod_index:
+	printf "dn: olcDatabase={1}mdb,cn=config\nchangetype: modify\nadd: olcDbIndex\nolcDbIndex: cn,ou,uid,mail eq\n" \
+	| docker-compose exec -T auth ldap modify
+
 mail-mta-up:
 	docker-compose up -d mail-mta
 
@@ -80,6 +84,12 @@ mail-mta-test:
 
 mail-mta-razor:
 	docker-compose exec mail-mta conf cntcfg_razor_register
+
+mail-mta-apk_list:
+	docker-compose exec mail-mta /bin/sh -c 'for pkg in $$(apk info 2>/dev/null); do printf "%9s  %s\n" $$(apk info -s $$pkg 2>/dev/null | sed -n "2{p;q}") $$pkg; done | sort'
+
+mail-mta-quarantine_list:
+	docker-compose exec mail-mta amavisd-ls
 
 mail-mta-debugtools:
 	docker-compose exec mail-mta apk --no-cache --update add \

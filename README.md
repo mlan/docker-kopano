@@ -1,6 +1,7 @@
 # The `mlan/kopano` repository
 
 ![travis-ci test](https://img.shields.io/travis/mlan/docker-kopano.svg?label=build&style=popout-square&logo=travis)
+![docker build](https://img.shields.io/docker/cloud/build/mlan/kopano.svg?label=build&style=popout-square&logo=docker)
 ![image Size](https://img.shields.io/microbadger/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
@@ -55,7 +56,7 @@ The docker compose example below is used to demonstrate how to configure these s
 An example of how to configure an web mail server using [docker compose](https://docs.docker.com/compose) is given below. It defines 4 services, `mail-app`, `mail-mta`, `mail-db` and `auth`, which are the web mail server, the mail transfer agent, the SQL database and LDAP authentication respectively.
 
 ```yaml
-version: '3.7'
+version: '3'
 
 services:
   mail-app:
