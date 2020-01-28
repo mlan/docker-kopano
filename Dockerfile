@@ -38,7 +38,7 @@ RUN	apt-get update && apt-get install --yes --no-install-recommends \
 	ca-certificates \
 	tar \
 	gnupg \
-	&& setup-runit.sh "syslogd -n -O - -l $SYSLOG_LEVEL $SYSLOG_OPTIONS"
+	&& setup-runit.sh "syslogd -nO- -l$SYSLOG_LEVEL $SYSLOG_OPTIONS"
 
 
 

@@ -1,3 +1,8 @@
+# 1.1.5
+
+- [demo](demo) Use host timezone by mounting /etc/localtime.
+- [demo](demo) Since 10.0.1 LDAP users don't get their share created, so `make init` now does that.
+
 # 1.1.4
 
 - Use `LDAP_URI` now that the historic directives `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL` are no longer supported (8.7.85).
