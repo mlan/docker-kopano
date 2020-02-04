@@ -5,7 +5,7 @@ BLD_ARG  ?=
 BLD_REPO ?= mlan/kopano
 BLD_VER  ?= latest
 BLD_TGT  ?= full
-SRC_VER  ?= $(shell src/docker/bin/kopano-webaddr.sh -VV)
+SRC_VER  ?= $(shell src/kopano/bin/kopano-webaddr.sh -VV)
 
 _version  = $(if $(findstring $(BLD_TGT),$(1)),$(2),$(if $(findstring latest,$(2)),$(1),$(1)-$(2)))
 
@@ -27,7 +27,7 @@ build_%: Dockerfile
 	-t $(BLD_REPO):$(call _version,$*,$(SRC_VER)) .
 
 version:
-	src/docker/bin/kopano-webaddr.sh -VV
+	src/kopano/bin/kopano-webaddr.sh -VV
 
 prune:
 	docker image prune

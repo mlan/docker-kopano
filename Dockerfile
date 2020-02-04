@@ -8,6 +8,7 @@ ARG	ARCH
 FROM	${ARCH:+$ARCH/}$DIST:$REL AS base
 LABEL	maintainer=mlan
 ENV	DEBIAN_FRONTEND=noninteractive \
+	PYTHONDONTWRITEBYTECODE=PleaseNoPyCache \
 	DOCKER_BIN_DIR=/usr/local/bin \
 	DOCKER_RUNSV_DIR=/etc/service \
 	DOCKER_ENTRY_DIR=/etc/entrypoint.d \
@@ -18,7 +19,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1 \
 	SYSLOG_OPTIONS='-S' \
-	SYSLOG_LEVEL=4
+	SYSLOG_LEVEL=5
 #
 # Copy utility scripts including entrypoint.sh to image
 #
@@ -79,6 +80,8 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_RUNSV_DIR=/etc/service \
 	DOCKER_BIN_DIR=/usr/local/bin \
 	LMTP_LISTEN=*:2003 \
+	SA_GROUP=kopano \
+	LOG_METHOD=syslog \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1
 #
@@ -102,12 +105,12 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	"-f kopano-search -F" \
 	"kopano-server -F" \
 	"kopano-spooler -F" \
+	"kopano-spamd -F" \
 	"-d kopano-grapi serve" \
 	"-d kopano-kapid serve --log-timestamp=false" \
 	"-d kopano-konnectd serve --log-timestamp=false" \
 	"-d kopano-monitor -F" \
-	"-d kopano-presence -F" \
-	"-d kopano-spamd -F"
+	"-d kopano-presence -F"
 #
 # Have runit's runsvdir start all services
 #
@@ -163,7 +166,7 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& mkdir -p /etc/kopano/theme/Custom \
 	&& ln -sf /etc/kopano/theme/Custom /usr/share/kopano-webapp/plugins/. \
 #	&& conf modify /etc/apache2/apache2.conf '^LogLevel' crit \
-#	&& a2disconf other-vhosts-access-log \
+	&& a2disconf other-vhosts-access-log \
 	&& a2dissite 000-default.conf \
 	&& a2ensite kopano-webapp \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \

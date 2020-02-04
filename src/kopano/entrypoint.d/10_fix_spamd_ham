@@ -1,8 +1,9 @@
 #!/bin/sh
 #
-# 20_fix_attr
+# 10_fix_spamd_ham
 #
-# Make sure all files in named directories are RW by user $DOCKER_USER.
+# kopano-spamd creates /var/lib/kopano/spamd/ham with root ownership, 
+# but needs to be kopano
 #
 
 #
@@ -10,7 +11,7 @@
 #
 
 DOCKER_USER=${DOCKER_USER-kopano}
-DOCKER_ATCH_DIR=${DOCKER_ATCH_DIR-/var/lib/kopano/attachments}
+DOCKER_SPAMD_DIR=${DOCKER_SPAMD_DIR-/var/lib/kopano/spamd}
 
 #
 # define helpers
@@ -36,4 +37,5 @@ fixattr() {
 # run
 #
 
-fixattr $DOCKER_ATCH_DIR
+mkdir -p $DOCKER_SPAMD_DIR/ham
+fixattr $DOCKER_SPAMD_DIR/ham

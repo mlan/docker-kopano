@@ -2,7 +2,7 @@
 
 ![travis-ci test](https://img.shields.io/travis/mlan/docker-kopano.svg?label=build&style=popout-square&logo=travis)
 ![docker build](https://img.shields.io/docker/cloud/build/mlan/kopano.svg?label=build&style=popout-square&logo=docker)
-![image Size](https://img.shields.io/microbadger/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
+![image Size](https://img.shields.io/docker/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
 
@@ -80,11 +80,13 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
-      - SYSLOG_LEVEL=3
+      - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
     volumes:
       - mail-conf:/etc/kopano
       - mail-atch:/var/lib/kopano/attachments
       - mail-sync:/var/lib/z-push
+      - mail-spam:/var/lib/kopano/spamd     # kopano-spamd integration
+      - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
   mail-mta:
     image: mlan/postfix-amavis
@@ -96,18 +98,14 @@ services:
     depends_on:
       - auth
     environment:
-      - MESSAGE_SIZE_LIMIT=${MESSAGE_SIZE_LIMIT-25600000}
       - LDAP_HOST=auth
       - VIRTUAL_TRANSPORT=lmtp:mail-app:2003
-      - SMTP_RELAY_HOSTAUTH=${SMTP_RELAY_HOSTAUTH-}
-      - SMTP_TLS_SECURITY_LEVEL=${SMTP_TLS_SECURITY_LEVEL-}
-      - SMTP_TLS_WRAPPERMODE=${SMTP_TLS_WRAPPERMODE-no}
       - LDAP_USER_BASE=ou=${LDAP_USEROU-users},${LDAP_BASE-dc=example,dc=com}
       - LDAP_QUERY_FILTER_USER=(&(objectclass=${LDAP_USEROBJ-posixAccount})(mail=%s))
-      - DKIM_SELECTOR=${DKIM_SELECTOR-default}
-      - SYSLOG_LEVEL=4
     volumes:
       - mail-mta:/srv
+      - mail-spam:/var/lib/kopano/spamd     # kopano-spamd integration
+      - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
   mail-db:
     image: mariadb
@@ -122,6 +120,7 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
     volumes:
       - mail-db:/var/lib/mysql
+      - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
   auth:
     image: mlan/openldap
@@ -131,6 +130,7 @@ services:
       - LDAP_LOGLEVEL=parse
     volumes:
       - auth-db:/srv
+      - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
 networks:
   backend:
@@ -141,10 +141,11 @@ volumes:
   mail-atch:
   mail-db:
   mail-mta:
+  mail-spam:
   mail-sync:
 ```
 
-This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. From within the [demo](demo) directory you can start the `mlan/kopano` container simply by typing:
+This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. From within the [demo](demo) directory you can start the containers by typing:
 
 ```bash
 make init
@@ -166,7 +167,7 @@ To see all available configuration variables you can run `man` within the contai
 make mail-app-man_server
 ```
 
-If you do, you will notice that configuration variable names are all lower case, but they will be matched with all uppercase environment variables by the container entrypoint script. 
+If you do, you will notice that configuration variable names are all lower case, but they will be matched with all uppercase environment variables by the container `entrypoint.sh` script. 
 
 ## SQL database configuration
 
@@ -252,9 +253,19 @@ Hint: Use the `kopanoAccount` attribute in the filter to differentiate between n
 
 By default the `imap` and `pop3` services are disabled for all users. You can set the environment variable `DISABLED_FEATURES=` to enable both `imap` and `pop3`. In this list you can disable certain features for users. This list is space separated, and currently may contain the following features: `imap`, `pop3`. Default: `DISABLED_FEATURES=imap pop3`
 
-### Logging `LOG_LEVEL`
+## Logging `SYSLOG_LEVEL`, `LOG_LEVEL`
 
-The level of output for logging in the range from 0 to 6. 0 means no logging, 1 for critical messages only, 2 for error or worse, 3 for warning or worse, 4 for notice or worse, 5 for info or worse, 6 debug. Default: `LOG_LEVEL=3`
+The level of output for logging is in the range from 0 to 7. The default is: `SYSLOG_LEVEL=5`.
+
+| emerg | alert | crit | err  | warning | notice | info | debug |
+| ----- | ----- | ---- | ---- | ------- | ------ | ---- | ----- |
+| 0     | 1     | 2    | 3    | 4       | **5**  | 6    | 7     |
+
+Separately, `LOG_LEVEL` controls the logging level of the Kopano services. `LOG_LEVEL` takes valued from 0 to 6, where the default is `LOG_LEVEL=3`.
+
+| none | crit | err  | warning | notice | info | debug |
+| ---- | ---- | ---- | ------- | ------ | ---- | ----- |
+| 0    | 1    | 2    | **3**   | 4      | 5    | 6     |
 
 ## Custom themes
 
@@ -287,3 +298,16 @@ TCP Port number used to contact the `SMTP_SERVER`. Default: `SMTP_PORT=25`
 ### Configuring postfix
 
 The Kopano server listens to the port 2003 and expect the [LMTP](https://en.wikipedia.org/wiki/Local_Mail_Transfer_Protocol) protocol. For Postfix you can define `VIRTUAL_TRANSPORT=lmtp:mail-app:2003` assuming the `mlan/kopano` container is named `mail-app`
+
+## Kopano-spamd integration with [mlan/postfix-amavis](https://github.com/mlan/docker-postfix-amavis)
+
+[Kopano-spamd](https://kb.kopano.io/display/WIKI/Kopano-spamd) allow users to
+drag messages into the Junk folder triggering the anti-spam filter to learn it as spam. If the user moves the message back to the inbox,
+the anti-spam filter will unlearn it.
+
+To allow kopano-spamd integration the kopano and postfix-amavis containers need to
+share the `/var/lib/kopano/spamd` folder. If this directory exists within the
+postfix-amavis container, the spamd-spam and spamd-ham service will be started.
+They will run `sa-learn --spam` or `sa-learn --ham`,
+respectively when a message is placed in either `var/lib/kopano/spamd/spam` or
+`var/lib/kopano/spamd/ham`.

@@ -1,3 +1,11 @@
+# 1.1.6
+
+- [docker](Dockerfile) Use syslogd, don't write to /var/log/apache2/other_vhosts_access.log.
+- [docker](Dockerfile) No need for python to write bytecode to container. Disabling that.
+- [repo](src) Separate source code in by which service it belongs to.
+- [kopano](src/kopano) Configure kopano-spamd.
+- [kopano](src/kopano) Workaround kopano-spamd bug: /var/lib/kopano/spamd/ham created with wrong permissions.
+
 # 1.1.5
 
 - [demo](demo) Use host timezone by mounting /etc/localtime.
