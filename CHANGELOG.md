@@ -1,3 +1,7 @@
+# 1.1.7
+
+- [docker](Dockerfile) Configure kopano-spamd to start with the force-remove-lingering-pid switch.
+
 # 1.1.6
 
 - [docker](Dockerfile) Use syslogd, don't write to /var/log/apache2/other_vhosts_access.log.

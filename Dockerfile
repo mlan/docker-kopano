@@ -105,7 +105,7 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	"-f kopano-search -F" \
 	"kopano-server -F" \
 	"kopano-spooler -F" \
-	"kopano-spamd -F" \
+	"-f kopano-spamd -F" \
 	"-d kopano-grapi serve" \
 	"-d kopano-kapid serve --log-timestamp=false" \
 	"-d kopano-konnectd serve --log-timestamp=false" \
