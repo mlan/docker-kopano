@@ -12,7 +12,7 @@ variables:
 ps:
 	docker-compose ps
 
-init: auth-up wait_11 auth-mod_index auth-add_user mail-db-up mail-mta-up mail-app-up wait_93 mail-app-create_store
+init: auth-up wait_11 auth-mod_index auth-add_user mail-db-up mail-mta-up mail-app-up
 
 up:
 	docker-compose up -d

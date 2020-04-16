@@ -1,6 +1,7 @@
 # 1.1.7
 
 - [docker](Dockerfile) Configure kopano-spamd to start with the force-remove-lingering-pid switch.
+- [demo](demo) Now with 10.0.3 LDAP users get their share created, again.
 
 # 1.1.6
 
