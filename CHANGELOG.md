@@ -1,6 +1,7 @@
 # 1.1.8
 
 - [docker](Dockerfile) Configure z-push to use HTTP_X_FORWARDED_FOR.
+- [demo](demo) Made service names shorter.
 
 # 1.1.7
 

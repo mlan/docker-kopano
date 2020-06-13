@@ -40,26 +40,26 @@ To exemplify the usage of the tags, lets assume that the latest version tag is `
 
 In most use cases the `mlan/kopano` container also needs a SQL database (e.g., [MySQL](https://hub.docker.com/_/mysql) or [MariaDB](https://hub.docker.com/_/mariadb)), Mail Transfer Agent (e.g., [Postfix](http://www.postfix.org/)) and authentication (e.g., [OpenLDAP](https://www.openldap.org/)). Docker images of such services are available.
 
-Often you want to configure Kopano and its components. There are 
+Often you want to configure Kopano and its components. There are
 different methods available to achieve this. You can use the environment
-variables described below set in the shell before creating the container. 
-These environment variables can also be explicitly given on 
-the command line when creating the container. They can also be given in 
-an `docker-compose.yml` file (and the `.env` file), see below. Moreover docker 
-volumes or host directories with desired configuration files can be 
+variables described below set in the shell before creating the container.
+These environment variables can also be explicitly given on
+the command line when creating the container. They can also be given in
+an `docker-compose.yml` file (and the `.env` file), see below. Moreover docker
+volumes or host directories with desired configuration files can be
 mounted in the container. And finally you can exec into a running container and modify configuration files directly.
 
 The docker compose example below is used to demonstrate how to configure these services.
 
 ## Docker compose example
 
-An example of how to configure an web mail server using [docker compose](https://docs.docker.com/compose) is given below. It defines 4 services, `mail-app`, `mail-mta`, `mail-db` and `auth`, which are the web mail server, the mail transfer agent, the SQL database and LDAP authentication respectively.
+An example of how to configure an web mail server using docker compose is given below. It defines 4 services, `app`, `mta`, `db` and `auth`, which are the web mail server, the mail transfer agent, the SQL database and LDAP authentication respectively.
 
 ```yaml
 version: '3'
 
 services:
-  mail-app:
+  app:
     image: mlan/kopano
     networks:
       - backend
@@ -67,13 +67,13 @@ services:
       - "127.0.0.1:8080:80"
     depends_on:
       - auth
-      - mail-db
-      - mail-mta
+      - db
+      - mta
     environment:
       - USER_PLUGIN=ldap
       - LDAP_URI=ldap://auth:389/
-      - MYSQL_HOST=mail-db
-      - SMTP_SERVER=mail-mta
+      - MYSQL_HOST=db
+      - SMTP_SERVER=mta
       - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
       - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${LDAP_USEROBJ-posixAccount}
       - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${LDAP_GROUPOBJ-posixGroup}
@@ -82,13 +82,13 @@ services:
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
       - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
     volumes:
-      - mail-conf:/etc/kopano
-      - mail-atch:/var/lib/kopano/attachments
-      - mail-sync:/var/lib/z-push
-      - mail-spam:/var/lib/kopano/spamd     # kopano-spamd integration
+      - app-conf:/etc/kopano
+      - app-atch:/var/lib/kopano/attachments
+      - app-sync:/var/lib/z-push
+      - app-spam:/var/lib/kopano/spamd     # kopano-spamd integration
       - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
-  mail-mta:
+  mta:
     image: mlan/postfix-amavis
     hostname: ${MAIL_SRV-mx}.${MAIL_DOMAIN-example.com}
     networks:
@@ -99,15 +99,15 @@ services:
       - auth
     environment:
       - LDAP_HOST=auth
-      - VIRTUAL_TRANSPORT=lmtp:mail-app:2003
+      - VIRTUAL_TRANSPORT=lmtp:app:2003
       - LDAP_USER_BASE=ou=${LDAP_USEROU-users},${LDAP_BASE-dc=example,dc=com}
       - LDAP_QUERY_FILTER_USER=(&(objectclass=${LDAP_USEROBJ-posixAccount})(mail=%s))
     volumes:
-      - mail-mta:/srv
-      - mail-spam:/var/lib/kopano/spamd     # kopano-spamd integration
+      - mta:/srv
+      - app-spam:/var/lib/kopano/spamd     # kopano-spamd integration
       - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
-  mail-db:
+  db:
     image: mariadb
     command: ['--log_warnings=1']
     networks:
@@ -119,7 +119,7 @@ services:
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
     volumes:
-      - mail-db:/var/lib/mysql
+      - db:/var/lib/mysql
       - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
   auth:
@@ -129,20 +129,20 @@ services:
     environment:
       - LDAP_LOGLEVEL=parse
     volumes:
-      - auth-db:/srv
+      - auth:/srv
       - /etc/localtime:/etc/localtime:ro    # Use host timezone
 
 networks:
   backend:
 
 volumes:
-  auth-db:
-  mail-conf:
-  mail-atch:
-  mail-db:
-  mail-mta:
-  mail-spam:
-  mail-sync:
+  app-atch:
+  app-conf:
+  app-spam:
+  app-sync:
+  auth:
+  db:
+  mta:
 ```
 
 This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. From within the [demo](demo) directory you can start the containers by typing:
@@ -155,6 +155,11 @@ Then you can assess WebApp on the URL [`http://localhost:8080`](http://localhost
 
 ```bash
 make test
+```
+When you are done testing you can destroy the test container by typing:
+
+```bash
+make destroy
 ```
 
 ## Environment variables
