@@ -1,3 +1,7 @@
+# 1.1.8
+
+- [docker](Dockerfile) Configure z-push to use HTTP_X_FORWARDED_FOR.
+
 # 1.1.7
 
 - [docker](Dockerfile) Configure kopano-spamd to start with the force-remove-lingering-pid switch.

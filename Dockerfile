@@ -209,6 +209,7 @@ RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST
 	z-push-autodiscover \
 	z-push-state-sql \
 	&& conf addafter /etc/apache2/conf-available/z-push.conf 'Alias /Microsoft-Server-ActiveSync' 'AliasMatch (?i)/Autodiscover/Autodiscover.xml "/usr/share/z-push/autodiscover/autodiscover.php"' '</IfModule>' \
+	&& conf replace /usr/share/z-push/config.php 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, false);' 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, \x27HTTP_X_FORWARDED_FOR\x27);' \
 	&& conf replace /usr/share/z-push/config.php 'define(\x27LOGBACKEND\x27, \x27filelog\x27);' 'define(\x27LOGBACKEND\x27, \x27syslog\x27);'
 
 
