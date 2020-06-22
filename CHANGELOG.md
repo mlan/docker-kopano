@@ -1,3 +1,12 @@
+# 1.2.0
+
+- [docker](src/docker) Use the native envvar `SVDIR` instead of `DOCKER_RUNSV_DIR`.
+- [docker](src/docker) Update docker-entrypoint.sh.
+- [docker](src/docker) Update docker-service.sh.
+- [docker](src/docker) Now use docker-config.sh.
+- [docker](src/docker) Now use DOCKER_ENTRY_DIR=/etc/docker/entry.d and DOCKER_EXIT_DIR=/etc/docker/exit.d.
+- [kopano](src/kopano) 50-kopano-apply-envvars.
+
 # 1.1.8
 
 - [docker](Dockerfile) Configure z-push to use HTTP_X_FORWARDED_FOR.
@@ -24,13 +33,13 @@
 # 1.1.4
 
 - Use `LDAP_URI` now that the historic directives `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL` are no longer supported (8.7.85).
-- Split up initialization functions and process supervision. Process supervision stays in entrypoint.sh, whereas the initialization functions are moved to individual files in /etc/entrypoint.d.
-- Apache runit script also needs `setup-runit.sh` option; force.
+- Split up initialization functions and process supervision. Process supervision stays in docker-entrypoint.sh, whereas the initialization functions are moved to individual files in /etc/docker/entry.d.
+- Apache runit script also needs `docker-service.sh` option; force.
 
 # 1.1.3
 
-- The `setup-runit.sh` script now have options:  down, force, log, name, source, quiet.
-- Fixed the Apache runit script, using the new `setup-runit.sh` script. Stopping the parent process now also stops all child processes. Using the quiet option, Apache does not flood the logs anymore.
+- The `docker-service.sh` script now have options:  down, force, log, name, source, quiet.
+- Fixed the Apache runit script, using the new `docker-service.sh` script. Stopping the parent process now also stops all child processes. Using the quiet option, Apache does not flood the logs anymore.
 - Added support of the environment variable `LMTP_LISTEN=*:2003`, due to misconfiguration of `kopano-dagent` in recent releases (8.7.84).
 - Simplified the health check.
 - Changed repository directory structure to a more general one.

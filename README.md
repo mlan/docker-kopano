@@ -172,7 +172,7 @@ To see all available configuration variables you can run `man` within the contai
 make mail-app-man_server
 ```
 
-If you do, you will notice that configuration variable names are all lower case, but they will be matched with all uppercase environment variables by the container `entrypoint.sh` script. 
+If you do, you will notice that configuration variable names are all lower case, but they will be matched with all uppercase environment variables by the container `docker-entrypoint.sh` script.
 
 ## SQL database configuration
 
@@ -279,7 +279,7 @@ You can easily customize the Kopano WebApp see [New! JSON themes in Kopano WebAp
 ```bash
 docker cp mytheme/. mail-app:/etc/kopano/theme/Custom
 docker exec -it mail-app chown -R root: /etc/kopano/theme
-docker exec -it mail-app conf replace /etc/kopano/webapp/config.php 'define("THEME", \x27\x27);' 'define("THEME", \x27Custom\x27);'
+docker exec -it mail-app run dc_replace /etc/kopano/webapp/config.php 'define("THEME", \x27\x27);' 'define("THEME", \x27Custom\x27);'
 ```
 
 Please note that it is not possible to rename the directory `/etc/kopano/theme/Custom` within the container without further modifications.

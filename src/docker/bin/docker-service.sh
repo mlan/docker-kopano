@@ -1,10 +1,11 @@
 #!/bin/sh
 #
-# setup-runit.sh
+# docker-service.sh
 #
+. docker-common.sh
 
-# use /etc/service if $DOCKER_RUNSV_DIR not already defined
-DOCKER_RUNSV_DIR=${DOCKER_RUNSV_DIR-/etc/service}
+# use /etc/service if $SVDIR not already defined
+SVDIR=${SVDIR-/etc/service}
 DOCKER_SVLOG_DIR=${DOCKER_SVLOG_DIR-/var/log/sv}
 DOCKER_RUN_DIR=${DOCKER_RUN_DIR-/var/run}
 
@@ -14,10 +15,10 @@ DOCKER_RUN_DIR=${DOCKER_RUN_DIR-/var/run}
 usage() {
 	cat <<-!cat
 		 NAME
-		  setup-runit.sh
+		  docker-service.sh
 
 		 SYNOPSIS
-		  setup-runit.sh [-d] [-f] [-h] [-l] [-n name] [-s file] [-q] command [args]
+		  docker-service.sh [-d] [-f] [-h] [-l] [-n name] [-s file] [-q] command [args]
 
 		 OPTIONS
 		  -d       default down
@@ -29,7 +30,7 @@ usage() {
 		  -q       send stdout and stderr to /dev/null
 
 		 EXAMPLES
-		  setup-runit.sh "kopano-dagent -l" "-d kopano-grapi serve"
+		  docker-service.sh "kopano-dagent -l" "-d kopano-grapi serve"
 		  "-q -s /etc/apache2/envvars apache2 -DFOREGROUND -DNO_DETACH -k start"
 
 	!cat
@@ -41,17 +42,6 @@ pid_name() {
 	local dir_name=${1%%-*}
 	local pid_name=${1##*-}
 	echo "${DOCKER_RUN_DIR}/${dir_name}/${pid_name}.pid"
-}
-
-inform() {
-	name=$(basename $0)
-	case "$1" in
-		0) pre_string="\e[1m\e[92mINFO ($name)\e[0m";;
-		1) pre_string="\e[1m\e[93mWARN ($name)\e[0m";;
-		2) pre_string="\e[1m\e[91mERROR ($name)\e[0m";;
-	esac
-	shift
-	printf "$pre_string %s\n" "$*"
 }
 
 add_opt() {
@@ -85,14 +75,14 @@ init_service() {
 	shift $((OPTIND -1))
 	cmd=$(which "$1")
 	sv_name=${sv_name-$(base_name $1)}
-	runsv_dir=$DOCKER_RUNSV_DIR/$sv_name
+	runsv_dir=$SVDIR/$sv_name
 	svlog_dir=$DOCKER_SVLOG_DIR/$sv_name
 	if [ -n "$sv_force" ]; then
 		forcepid="$(echo rm -f $(pid_name $sv_name)*)"
 	fi
 	shift
 	if [ ! -z "$cmd" ]; then
-		inform 0 "Setting up ($sv_name) options ($options) args ($@)"
+		dc_log 5 "Setting up ($sv_name) options ($options) args ($@)"
 		mkdir -p $runsv_dir
 		cat <<-!cat > $runsv_dir/run
 			#!/bin/sh -e
@@ -116,7 +106,6 @@ init_service() {
 		fi
 	fi
 	}
-
 
 #
 # run

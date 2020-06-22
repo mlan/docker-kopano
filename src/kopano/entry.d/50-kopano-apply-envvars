@@ -1,6 +1,6 @@
 #!/bin/bash
 #
-# 50_update_config
+# 50-kopano-apply-envvars
 #
 # Kopano now installs without any cfg files, so we just write custom values
 # into their target cfg file.
@@ -39,9 +39,7 @@ sqlstate_env_vars="STATE_SQL_ENGINE STATE_SQL_SERVER STATE_SQL_PORT STATE_SQL_DA
 # Define helpers
 #
 
-inform() { printf "entrypoint[$$]: INFO:$(basename $0): $*.\n" ;}
-
-_kopano_cfg_gen() {
+_kopano_apply_envvars_gen() {
 	# do not touch existing cfg files
 	local cfg_file=$1
 	shift
@@ -49,43 +47,43 @@ _kopano_cfg_gen() {
 	if [ ! -e $cfg_file ]; then
 		for env_var in $env_vars; do
 			if [ -n "${!env_var}" ]; then
-				inform "Setting ${env_var,,} = ${!env_var} in $cfg_file"
+				dc_log 5 "Setting ${env_var,,} = ${!env_var} in $cfg_file"
 				echo ${env_var,,} = ${!env_var} >> $cfg_file
 			fi
 		done
 	fi
 }
 
-_php_cfg_gen() {
+_kopano_apply_phpenvvars_gen() {
 	local cfg_file=$1
 	shift
 	local env_vars=$@
 	if [ -e $cfg_file ]; then
 		for env_var in $env_vars; do
 			if [ -n "${!env_var}" ]; then
-				inform "Setting ${env_var} = ${!env_var} in $cfg_file"
+				dc_log 5 "Setting ${env_var} = ${!env_var} in $cfg_file"
 				sed -ri "s/(\s*define).+${env_var}.+/\1\(\x27${env_var}\x27, \x27${!env_var}\x27\);/g" $cfg_file
 			fi
 		done
 	fi
 }
 
-kopano_cfg() {
-	_kopano_cfg_gen $server_cfg_file   $server_env_vars
-	_kopano_cfg_gen $ldap_cfg_file     $ldap_env_vars
-	_kopano_cfg_gen $spooler_cfg_file  $spooler_env_vars
-	_kopano_cfg_gen $dagent_cfg_file   $dagent_env_vars
-	_kopano_cfg_gen $spamd_cfg_file    $spamd_env_vars
+kopano_apply_envvars() {
+	_kopano_apply_envvars_gen $server_cfg_file   $server_env_vars
+	_kopano_apply_envvars_gen $ldap_cfg_file     $ldap_env_vars
+	_kopano_apply_envvars_gen $spooler_cfg_file  $spooler_env_vars
+	_kopano_apply_envvars_gen $dagent_cfg_file   $dagent_env_vars
+	_kopano_apply_envvars_gen $spamd_cfg_file    $spamd_env_vars
 }
 
-php_cfg() {
-	_php_cfg_gen    $zpush_cfg_file    $zpush_env_vars
-	_php_cfg_gen    $sqlstate_cfg_file $sqlstate_env_vars
+kopano_apply_phpenvvars() {
+	_kopano_apply_phpenvvars_gen $zpush_cfg_file    $zpush_env_vars
+	_kopano_apply_phpenvvars_gen $sqlstate_cfg_file $sqlstate_env_vars
 }
 
 #
 # run
 #
 
-kopano_cfg
-php_cfg
+kopano_apply_envvars
+kopano_apply_phpenvvars

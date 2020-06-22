@@ -57,8 +57,11 @@ $(addsuffix -logs,$(srv_list)):
 $(addsuffix -sh,$(srv_list)):
 	docker-compose exec $(patsubst %-sh,%,$@) sh
 
+$(addsuffix -env,$(srv_list)):
+	docker-compose exec $(patsubst %-env,%,$@) env
+
 $(addsuffix -sv,$(srv_list)):
-	docker-compose exec $(patsubst %-sv,%,$@) sh -c 'sv status $$DOCKER_RUNSV_DIR/*'
+	docker-compose exec $(patsubst %-sv,%,$@) sh -c 'sv status $$SVDIR/*'
 
 $(addsuffix -diff,$(srv_list)):
 	docker container diff $(COMPOSE_PROJECT_NAME)_$(patsubst %-diff,%,$@)_1
@@ -91,7 +94,7 @@ mta-test:
 	| nc -C localhost 25
 
 mta-razor:
-	docker-compose exec mta conf cntcfg_razor_register
+	docker-compose exec mta run amavis_register_razor
 
 mta-apk_list:
 	docker-compose exec mta /bin/sh -c 'for pkg in $$(apk info 2>/dev/null); do printf "%9s  %s\n" $$(apk info -s $$pkg 2>/dev/null | sed -n "2{p;q}") $$pkg; done | sort'
@@ -111,6 +114,10 @@ mta-debugtools:
 
 mta-htop: mta-debugtools
 	docker-compose exec mta htop
+
+mta-encrypt:
+	$(eval secret := $(shell whiptail --backtitle "doveadm pw" --title "encrypt password" --inputbox "password" 8 78 secret 3>&1 1>&2 2>&3))
+	docker-compose exec mta doveadm pw -p $(secret)
 
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)

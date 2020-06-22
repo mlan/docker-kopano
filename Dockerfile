@@ -9,26 +9,28 @@ FROM	${ARCH:+$ARCH/}$DIST:$REL AS base
 LABEL	maintainer=mlan
 ENV	DEBIAN_FRONTEND=noninteractive \
 	PYTHONDONTWRITEBYTECODE=PleaseNoPyCache \
+	SVDIR=/etc/service \
 	DOCKER_BIN_DIR=/usr/local/bin \
-	DOCKER_RUNSV_DIR=/etc/service \
-	DOCKER_ENTRY_DIR=/etc/entrypoint.d \
-	DOCKER_EXIT_DIR=/etc/exitpoint.d \
+	DOCKER_ENTRY_DIR=/etc/docker/entry.d \
+	DOCKER_EXIT_DIR=/etc/docker/exit.d \
 	DOCKER_CONF_DIR1=/etc/kopano \
 	DOCKER_CONF_DIR2=/usr/share/z-push \
-	DOCKER_USER=kopano \
+	DOCKER_APPL_LIB=/var/lib/kopano \
+	KOPANO_SPAMD_LIB=/var/lib/kopano/spamd \
+	DOCKER_RUNAS=kopano \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1 \
 	SYSLOG_OPTIONS='-S' \
 	SYSLOG_LEVEL=5
 #
-# Copy utility scripts including entrypoint.sh to image
+# Copy utility scripts including docker-entrypoint.sh to image
 #
 COPY	src/*/bin $DOCKER_BIN_DIR/
-COPY	src/*/entrypoint.d $DOCKER_ENTRY_DIR/
-COPY	src/*/exitpoint.d $DOCKER_EXIT_DIR/
+COPY	src/*/entry.d $DOCKER_ENTRY_DIR/
+COPY	src/*/exit.d $DOCKER_EXIT_DIR/
 
 #
-# Install helpers
+# Install helpers. Set bash as default shell. Setup syslogs service.
 #
 RUN	apt-get update && apt-get install --yes --no-install-recommends \
 	apt-utils \
@@ -39,7 +41,7 @@ RUN	apt-get update && apt-get install --yes --no-install-recommends \
 	ca-certificates \
 	tar \
 	gnupg \
-	&& setup-runit.sh "syslogd -nO- -l$SYSLOG_LEVEL $SYSLOG_OPTIONS"
+	&& docker-service.sh "syslogd -nO- -l$SYSLOG_LEVEL $SYSLOG_OPTIONS"
 
 
 
@@ -51,7 +53,7 @@ FROM	base AS base-man
 # Do not exclude man pages & other documentation
 # Reinstall all currently installed packages in order to get the man pages back
 #
-ENV	DEBIAN_FRONTEND=noninteractive
+#ENV	DEBIAN_FRONTEND=noninteractive
 RUN	rm -f /etc/dpkg/dpkg.cfg.d/excludes \
 	&& apt-get update \
 	&& dpkg -l | grep ^ii | cut -d' ' -f3 | xargs apt-get install -y --reinstall \
@@ -77,7 +79,7 @@ ARG	ARCH=amd64
 # variables
 #
 ENV	DEBIAN_FRONTEND=noninteractive \
-	DOCKER_RUNSV_DIR=/etc/service \
+	SVDIR=/etc/service \
 	DOCKER_BIN_DIR=/usr/local/bin \
 	LMTP_LISTEN=*:2003 \
 	SA_GROUP=kopano \
@@ -96,9 +98,10 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
 	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
-	&& mkdir -p /var/lib/kopano/attachments && chown kopano: /var/lib/kopano/attachments \
+	&& mkdir -p /var/lib/kopano/attachments && chown $DOCKER_RUNAS: /var/lib/kopano/attachments \
+	&& mkdir -p $KOPANO_SPAMD_LIB/ham && chown $DOCKER_RUNAS: $KOPANO_SPAMD_LIB/ham \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
-	&& setup-runit.sh \
+	&& docker-service.sh \
 	"kopano-dagent -l" \
 	"kopano-gateway -F" \
 	"kopano-ical -F" \
@@ -114,15 +117,15 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 #
 # Have runit's runsvdir start all services
 #
-CMD	runsvdir -P ${DOCKER_RUNSV_DIR}
+CMD	runsvdir -P ${SVDIR}
 #
 # Entrypoint, how container is run
 #
-ENTRYPOINT ["entrypoint.sh"]
+ENTRYPOINT ["docker-entrypoint.sh"]
 #
 # Check if all services are running
 #
-HEALTHCHECK CMD sv status ${DOCKER_RUNSV_DIR}/*
+HEALTHCHECK CMD sv status ${SVDIR}/*
 
 
 
@@ -139,7 +142,7 @@ ARG	REL
 # variables
 #
 ENV	DEBIAN_FRONTEND=noninteractive \
-	DOCKER_RUNSV_DIR=/etc/service \
+	SVDIR=/etc/service \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1
 #
@@ -156,21 +159,23 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
 	&& dpkg-reconfigure php7-mapi \
-	&& conf replace /etc/kopano/webapp/config.php 'define("INSECURE_COOKIES", false);' 'define("INSECURE_COOKIES", true);' \
-#	&& conf fixmissing /etc/php/7.?/apache2/conf.d/kopano.ini /etc/php/7.?/mods-available/kopano.ini /etc/php5/conf.d/kopano.ini \
-	&& conf replace /etc/apache2/sites-available/kopano-webapp.conf 'Alias /webapp /usr/share/kopano-webapp' '<VirtualHost *:80>\\nDocumentRoot /usr/share/kopano-webapp' \
+	&& . docker-common.sh \
+	&& . docker-config.sh \
+	&& dc_replace /etc/kopano/webapp/config.php 'define("INSECURE_COOKIES", false);' 'define("INSECURE_COOKIES", true);' \
+#	&& dc_fixmissing /etc/php/7.?/apache2/conf.d/kopano.ini /etc/php/7.?/mods-available/kopano.ini /etc/php5/conf.d/kopano.ini \
+	&& dc_replace /etc/apache2/sites-available/kopano-webapp.conf 'Alias /webapp /usr/share/kopano-webapp' '<VirtualHost *:80>\\nDocumentRoot /usr/share/kopano-webapp' \
 	&& echo '</VirtualHost>' >> /etc/apache2/sites-available/kopano-webapp.conf \
-	&& conf modify /etc/apache2/apache2.conf '^ErrorLog' syslog:user \
+	&& dc_modify /etc/apache2/apache2.conf '^ErrorLog' syslog:user \
 	&& echo 'CustomLog "||/usr/bin/logger -t apache -i -p user.debug" common' >> /etc/apache2/apache2.conf \
 	&& echo 'ServerName localhost' >> /etc/apache2/apache2.conf \
 	&& mkdir -p /etc/kopano/theme/Custom \
 	&& ln -sf /etc/kopano/theme/Custom /usr/share/kopano-webapp/plugins/. \
-#	&& conf modify /etc/apache2/apache2.conf '^LogLevel' crit \
+#	&& dc_modify /etc/apache2/apache2.conf '^LogLevel' crit \
 	&& a2disconf other-vhosts-access-log \
 	&& a2dissite 000-default.conf \
 	&& a2ensite kopano-webapp \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
-	&& setup-runit.sh "-f -s /etc/apache2/envvars -q apache2 -DFOREGROUND -DNO_DETACH -k start"
+	&& docker-service.sh "-f -s /etc/apache2/envvars -q apache2 -DFOREGROUND -DNO_DETACH -k start"
 #
 # Ports
 #
@@ -191,7 +196,7 @@ ARG	REL
 # variables
 #
 ENV	DEBIAN_FRONTEND=noninteractive \
-	DOCKER_RUNSV_DIR=/etc/service \
+	SVDIR=/etc/service \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1
 #
@@ -208,9 +213,11 @@ RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST
 	z-push-config-apache \
 	z-push-autodiscover \
 	z-push-state-sql \
-	&& conf addafter /etc/apache2/conf-available/z-push.conf 'Alias /Microsoft-Server-ActiveSync' 'AliasMatch (?i)/Autodiscover/Autodiscover.xml "/usr/share/z-push/autodiscover/autodiscover.php"' '</IfModule>' \
-	&& conf replace /usr/share/z-push/config.php 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, false);' 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, \x27HTTP_X_FORWARDED_FOR\x27);' \
-	&& conf replace /usr/share/z-push/config.php 'define(\x27LOGBACKEND\x27, \x27filelog\x27);' 'define(\x27LOGBACKEND\x27, \x27syslog\x27);'
+	&& . docker-common.sh \
+	&& . docker-config.sh \
+	&& dc_addafter /etc/apache2/conf-available/z-push.conf 'Alias /Microsoft-Server-ActiveSync' 'AliasMatch (?i)/Autodiscover/Autodiscover.xml "/usr/share/z-push/autodiscover/autodiscover.php"' '</IfModule>' \
+	&& dc_replace /usr/share/z-push/config.php 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, false);' 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, \x27HTTP_X_FORWARDED_FOR\x27);' \
+	&& dc_replace /usr/share/z-push/config.php 'define(\x27LOGBACKEND\x27, \x27filelog\x27);' 'define(\x27LOGBACKEND\x27, \x27syslog\x27);'
 
 
 
