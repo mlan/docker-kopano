@@ -101,6 +101,7 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& mkdir -p /var/lib/kopano/attachments && chown $DOCKER_RUNAS: /var/lib/kopano/attachments \
 	&& mkdir -p $KOPANO_SPAMD_LIB/ham && chown $DOCKER_RUNAS: $KOPANO_SPAMD_LIB/ham \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
+	&& rm $DOCKER_CONF_DIR1/*.cfg \
 	&& docker-service.sh \
 	"kopano-dagent -l" \
 	"kopano-gateway -F" \
