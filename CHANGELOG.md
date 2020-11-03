@@ -1,6 +1,6 @@
 # 1.2.2
 
-- [kopano](src/kopano) adding support for ical configuration via envvars in, 50-kopano-apply-envvars.
+- [kopano](src/kopano) adding support for gateway / imap ical search configuration via envvars in, 50-kopano-apply-envvars.
 
 # 1.2.1
 

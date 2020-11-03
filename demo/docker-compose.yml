@@ -6,7 +6,9 @@ services:
     networks:
       - backend
     ports:
-      - "127.0.0.1:8008:80"    # HTTP alternative
+      - "127.0.0.1:8008:80"    # WebApp & EAS (alt. HTTP)
+      - "127.0.0.1:110:110"    # POP3
+      - "127.0.0.1:143:143"    # IMAP
       - "127.0.0.1:8080:8080"  # ICAL
     depends_on:
       - auth

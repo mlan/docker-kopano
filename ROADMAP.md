@@ -1,5 +1,13 @@
 # Road map
 
+## Common configurations
+
+The following directives exist:
+
+```sh
+!include common.cfg
+```
+
 ## Revisit Persistent Data
 
 Consider consolidating directories which are candidates for persistence under `/srv`.
