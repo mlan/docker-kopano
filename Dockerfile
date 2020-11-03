@@ -104,17 +104,16 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& rm $DOCKER_CONF_DIR1/*.cfg \
 	&& docker-service.sh \
 	"kopano-dagent -l" \
-	"kopano-gateway -F" \
-	"kopano-ical -F" \
-	"-f kopano-search -F" \
-	"kopano-server -F" \
-	"kopano-spooler -F" \
-	"-f kopano-spamd -F" \
+	"kopano-gateway" \
+	"kopano-ical" \
+	"kopano-search" \
+	"kopano-server" \
+	"kopano-spooler" \
+	"-f kopano-spamd" \
 	"-d kopano-grapi serve" \
 	"-d kopano-kapid serve --log-timestamp=false" \
 	"-d kopano-konnectd serve --log-timestamp=false" \
-	"-d kopano-monitor -F" \
-	"-d kopano-presence -F"
+	"-d kopano-monitor"
 #
 # Have runit's runsvdir start all services
 #
