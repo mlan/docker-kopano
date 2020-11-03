@@ -6,7 +6,8 @@ services:
     networks:
       - backend
     ports:
-      - "127.0.0.1:8080:80"
+      - "127.0.0.1:8008:80"    # HTTP alternative
+      - "127.0.0.1:8080:8080"  # ICAL
     depends_on:
       - auth
       - db
@@ -27,7 +28,7 @@ services:
       - app-conf:/etc/kopano
       - app-atch:/var/lib/kopano/attachments
       - app-sync:/var/lib/z-push
-      - app-spam:/var/lib/kopano/spamd     # kopano-spamd integration
+      - app-spam:/var/lib/kopano/spamd      # kopano-spamd integration
       - /etc/localtime:/etc/localtime:ro    # Use host timezone
     cap_add: # helps debugging by alowing strace
       - sys_ptrace
@@ -38,7 +39,7 @@ services:
     networks:
       - backend
     ports:
-      - "127.0.0.1:25:25"
+      - "127.0.0.1:25:25"      # SMTP
     depends_on:
       - auth
     environment:

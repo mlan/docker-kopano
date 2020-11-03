@@ -70,7 +70,7 @@ wait_%:
 	sleep $*
 
 web:
-	firefox localhost:8080 &
+	firefox localhost:8008 &
 
 auth-show_conf:
 	docker-compose exec auth ldap search -b cn=config olcDatabase={1}mdb

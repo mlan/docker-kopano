@@ -1,3 +1,7 @@
+# 1.2.2
+
+- [kopano](src/kopano) adding support for ical configuration via envvars in, 50-kopano-apply-envvars.
+
 # 1.2.1
 
 - [docker](Dockerfile) The kopano installation now (version 10.0.6) populate all example-config files in /etc/kopano. This breaks our configuration, so we need to remove them. They can still be found here /usr/share/doc/kopano/example-config.

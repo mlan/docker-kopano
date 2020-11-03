@@ -18,6 +18,7 @@ ldap_cfg_file=$DOCKER_CONF_DIR1/ldap.cfg
 spooler_cfg_file=$DOCKER_CONF_DIR1/spooler.cfg
 dagent_cfg_file=$DOCKER_CONF_DIR1/dagent.cfg
 spamd_cfg_file=$DOCKER_CONF_DIR1/spamd.cfg
+ical_cfg_file=$DOCKER_CONF_DIR1/ical.cfg
 
 zpush_cfg_file=$DOCKER_CONF_DIR2/config.php
 sqlstate_cfg_file=$DOCKER_CONF_DIR2/backend/sqlstatemachine/config.php
@@ -31,6 +32,7 @@ ldap_env_vars="LDAP_URI LDAP_HOST LDAP_PORT LDAP_PROTOCOL LDAP_SEARCH_BASE LDAP_
 spooler_env_vars="SMTP_SERVER SMTP_PORT LOG_LEVEL"
 dagent_env_vars="LMTP_LISTEN LOG_LEVEL"
 spamd_env_vars="LOG_METHOD SPAM_DIR SPAM_DB HEADER_TAG LEARN_HAM HAM_DIR SA_GROUP"
+ical_env_vars="ICAL_LISTEN ICALS_LISTEN ENABLE_ICAL_GET"
 
 zpush_env_vars="TIMEZONE USE_CUSTOM_REMOTE_IP_HEADER USE_FULLEMAIL_FOR_LOGIN STATE_MACHINE STATE_DIR LOGBACKEND LOGLEVEL LOGAUTHFAIL LOG_SYSLOG_PROGRAM LOG_SYSLOG_FACILITY SYNC_CONFLICT_DEFAULT PING_INTERVAL FILEAS_ORDER SYNC_MAX_ITEMS UNSET_UNDEFINED_PROPERTIES ALLOW_WEBSERVICE_USERS_ACCESS USE_PARTIAL_FOLDERSYNC"
 sqlstate_env_vars="STATE_SQL_ENGINE STATE_SQL_SERVER STATE_SQL_PORT STATE_SQL_DATABASE STATE_SQL_USER STATE_SQL_PASSWORD STATE_SQL_OPTIONS"
@@ -74,6 +76,7 @@ kopano_apply_envvars() {
 	_kopano_apply_envvars_gen $spooler_cfg_file  $spooler_env_vars
 	_kopano_apply_envvars_gen $dagent_cfg_file   $dagent_env_vars
 	_kopano_apply_envvars_gen $spamd_cfg_file    $spamd_env_vars
+	_kopano_apply_envvars_gen $ical_cfg_file     $ical_env_vars
 }
 
 kopano_apply_phpenvvars() {
