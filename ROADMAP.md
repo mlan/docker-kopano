@@ -1,5 +1,13 @@
 # Road map
 
+## Dockerfile
+
+Consider removing debugtools build target. There already exists a app-debugtools target in the demo Makefile.
+
+## kDAV
+
+Consider integrating support for kDAV which provides CalDAV and CardDAV.
+
 ## Common configurations
 
 The following directives exist:
@@ -7,6 +15,10 @@ The following directives exist:
 ```sh
 !include common.cfg
 ```
+
+## ACME TLS
+
+Arrange ACME TLS certificates for kopano-gateway (IMAP POP3).
 
 ## Revisit Persistent Data
 

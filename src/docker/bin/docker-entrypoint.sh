@@ -61,7 +61,7 @@ term_trap() {
 #
 
 exec 2>&1
-trap 'kill $!; term_trap' TERM
+trap 'kill $!; term_trap' SIGTERM
 
 #
 # Stage 1) run all entry scripts in $DOCKER_ENTRY_DIR

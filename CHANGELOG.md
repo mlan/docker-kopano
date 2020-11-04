@@ -1,7 +1,10 @@
 # 1.2.2
 
-- [kopano](src/kopano) Adding support for gateway / imap ical search configuration via envvars in, 50-kopano-apply-envvars.
+- [kopano](src/kopano) Adding support for gateway / IMAP iCAL search configuration via envvars in, 50-kopano-apply-envvars.
+- [kopano](src/kopano) Fixed old bug where set but empty environment variable was ignored by 50-kopano-apply-envvars.
+- [demo](demo) Enable IMAP POP3 and CalDAV/iCAL in demo.
 - [docker](Dockerfile) Update kopano services.
+- [docker](README.md) Added sections `Mail client configuration` and `Implementation`.
 
 # 1.2.1
 

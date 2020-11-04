@@ -6,16 +6,14 @@
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
 
-This (non official) repository provides dockerized web mail service as well as ActiveSync, ICAL, IMAP and POP3 service. It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
+This (non official) repository provides dockerized web mail service as well as Exchange ActiveSync (EAS), ICAL, IMAP and POP3 service. It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
 
 Hopefully this repository can be retired once the Kopano community make official images available. To learn more about this activity see [zokradonh/kopano-docker](https://github.com/zokradonh/kopano-docker).
 
 ## Features
 
-Brief feature list follows below
-
 - Groupware server [Kopano WebApp](https://kopano.io/)
-- ActiveSync server [Z-Push](http://z-push.org/)
+- [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync) server [Z-Push](http://z-push.org/)
 - Multi-staged build providing the images `full`, `debugtools` and `core`
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
@@ -145,22 +143,54 @@ volumes:
   mta:
 ```
 
-This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. From within the [demo](demo) directory you can start the containers by typing:
+## Demo
+
+This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. Start with cloning the [github](https://github.com/mlan/docker-kopano) repository.
+
+```bash
+git clone https://github.com/mlan/docker-kopano.git
+```
+
+From within the [demo](demo) directory you can start the containers by typing:
 
 ```bash
 make init
 ```
 
-Then you can assess WebApp on the URL [`http://localhost:8080`](http://localhost:8080) and log in with the user name `demo` and password `demo` . You can send yourself a test email by typing:
+Then you can assess WebApp on the URL [`http://localhost:8008`](http://localhost:8008) and log in with the user name `demo` and password `demo` . You can send yourself a test email by typing:
+
+```bash
+make web
+```
+
+You can send yourself a test email by typing:
 
 ```bash
 make test
 ```
-When you are done testing you can destroy the test container by typing:
+
+When you are done testing you can destroy the test containers by typing
 
 ```bash
 make destroy
 ```
+
+## Persistent storage
+
+By default, docker will store the user data and service configurations within the container. This has the drawback that the user data and service configurations are lost together with the container should it be deleted. It can therefore be a good idea to use docker volumes and mount the run directories and/or the configuration directories there so that the data will survive a container deletion.
+
+There are at least three directories which should be considered for persistent storage; the configuration files, `/etc/kopano`, the mail attachments, if they are kept in files, `/var/lib/kopano/attachments` and the active sync device states, if they are kept in files, `/var/lib/z-push`.
+
+## Configuration / seeding procedure
+
+The `mlan/kopano` image contains an elaborate configuration / seeding procedure. The configuration is controlled by environment variables, described below.
+
+The seeding procedure will leave any existing configuration untouched. This is achieved by the using an unlock file: `DOCKER_UNLOCK_FILE=/srv/etc/.docker.unlock`.
+During the image build this file is created. When the the container is started the configuration / seeding procedure will be executed if the `DOCKER_UNLOCK_FILE` can be found. Once the procedure completes the unlock file is deleted preventing the configuration / seeding procedure to run when the container is restarted.
+
+The unlock file approach was selected since it is difficult to accidentally _create_ a file.
+
+In the rare event that want to modify the configuration of an existing container you can override the default behavior by setting `FORCE_CONFIG=OVERWRITE` to a no-empty string.
 
 ## Environment variables
 
@@ -210,10 +240,6 @@ When the `ATTACHMENT_STORAGE` option is `ATTACHMENT_STORAGE=files`, this option 
 
 When creating the SQL container you can use environment variables to initiate it. For example, `MYSQL_ROOT_PASSWORD=topsecret`, `MYSQL_DATABASE=kopano`, `MYSQL_USER=kopano` and `MYSQL_PASSWORD=verysecret`.
 
-## Persistent data
-
-There are at least three directories which should be considered mounted; the configuration files, `/etc/kopano`, the mail attachments, if they are kept in files, `/var/lib/kopano/attachments` and the active sync device states, if they are kept in files, `/var/lib/z-push`.
-
 ## User authentication `USER_PLUGIN`
 
 Kopano supports three different ways to manage user authentication. Use the `USER_PLUGIN` environment variable to select the source of the user base. Possible values are: `db` (default), `ldap` and `unix`.
@@ -254,9 +280,17 @@ Adds an extra filter to the user search. Default `LDAP_USER_SEARCH_FILTER=`
 
 Hint: Use the `kopanoAccount` attribute in the filter to differentiate between non-kopano and kopano users.
 
-### Enabling IMAP and POP3 `DISABLED_FEATURES`
+### Enabling IMAP, POP3 and ICAL
 
-By default the `imap` and `pop3` services are disabled for all users. You can set the environment variable `DISABLED_FEATURES=` to enable both `imap` and `pop3`. In this list you can disable certain features for users. This list is space separated, and currently may contain the following features: `imap`, `pop3`. Default: `DISABLED_FEATURES=imap pop3`
+By default the IMAP and POP3 services are disabled for all users. Set the environment variable `DISABLED_FEATURES=` to an empty string to enable both IMAP and POP3 for all users.
+
+#### `DISABLED_FEATURES`
+
+The environment variable `DISABLED_FEATURES` take a space separated list of features. Currently it may contain the following features: `imap`, `mobile`, `outlook`, `pop3` and `webapp`. Default: `DISABLED_FEATURES="imap pop3"`
+
+#### `POP3_LISTEN`, `IMAP_LISTEN` and `ICAL_LISTEN`
+
+By default the kopano-gateway and kopano-ical services are configured to only listen on the loopback interface. To be able to access these services we need them to listen to any interface. This is achieved by setting `POP3_LISTEN=*:110`, `IMAP_LISTEN=*:143` and `ICAL_LISTEN=*:8080`. These port numbers can be changed if desired.
 
 ## Logging `SYSLOG_LEVEL`, `LOG_LEVEL`
 
@@ -316,3 +350,65 @@ postfix-amavis container, the spamd-spam and spamd-ham service will be started.
 They will run `sa-learn --spam` or `sa-learn --ham`,
 respectively when a message is placed in either `var/lib/kopano/spamd/spam` or
 `var/lib/kopano/spamd/ham`.
+
+# Knowledge base
+
+Here some topics relevant for arranging a mail server are presented.
+
+## Mail client configuration
+
+### Microsoft Outlook
+
+Kopano, using [Z-Push](http://z-push.org/), allows native interfacing with Microsoft Outlook 2013 and above via the [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync) protocol, providing synchronization of mail, calendar, tasks and contacts. For details please see [Configuring Outlook](https://documentation.kopano.io/user_manual_kopanocore/configure_outlook.html).
+
+It can be interesting to know that there is a [Kopano OL Extension](https://kb.kopano.io/display/WIKI/Setting+up+the+Kopano+OL+Extension) that can improve productivity. To install it [download](https://download.kopano.io/community/olextension%3A/) and run the `KopanoOLExtension-<version>-combined.exe` file on your Windows PC.
+
+### Mobile devices
+
+Most mobile devices, that is, Apple iOS, Android and Blackberry have support for [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync), providing synchronization of mail, calendar, tasks and contacts. For details please see [Configuring Mobile Devices](https://documentation.kopano.io/user_manual_kopanocore/configure_mobile_devices.html).
+
+### Alternative mail synchronization
+
+Some clients does not support [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync), e.g., Linux ones, in which case either the [IMAP](https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol) or [POP3](https://en.wikipedia.org/wiki/Post_Office_Protocol) protocol are used via the Kopano gateway. These protocols only handle incoming mail, so for sending mail clients need to interface directly with a [Mail Transfer Agent (MTA)](https://en.wikipedia.org/wiki/Message_transfer_agent) over [SMTP](https://en.wikipedia.org/wiki/Simple_Mail_Transfer_Protocol). For more details please see [Configuring Alternative Mail Clients](https://documentation.kopano.io/user_manual_kopanocore/configure_alternative_mail_clients.html).
+
+Please note that IMAP and POP3 access are not enabled by default, see [Enabling IMAP and POP3 `DISABLED_FEATURES`](#enabling-imap-and-pop3-disabled_features).
+
+### Alternative calendar synchronization
+
+CalDAV offers calendar sync For more details please see [Configuring CalDAV Clients](https://documentation.kopano.io/user_manual_kopanocore/configure_caldav_clients.html).
+
+### Mozilla Thunderbird
+
+Thunderbird does not support [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync), so either [IMAP](https://en.wikipedia.org/wiki/Internet_Message_Access_Protocol) or [POP3](https://en.wikipedia.org/wiki/Post_Office_Protocol) and SMTP is needed to synchronize mail, see [Alternative mail synchronization](#alternative-mail-synchronization).
+
+To synchronize calendar, tasks and contacts CalDAV can be used. Interestingly Thunderbird has a add-on that provides calendar, tasks and contacts synchronization using [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync), but not for mail. For details please see [Provider for Exchange ActiveSync](https://addons.thunderbird.net/en-US/thunderbird/addon/eas-4-tbsync/).
+
+# Implementation
+
+Here some implementation details are presented.
+
+## Container init scheme
+
+The container use [runit](http://smarden.org/runit/), providing an init scheme and service supervision, allowing multiple services to be started. There is a Gentoo Linux [runit wiki](https://wiki.gentoo.org/wiki/Runit).
+
+When the container is started, execution is handed over to the script [`docker-entrypoint.sh`](src/docker/bin/docker-entrypoint.sh). It has 4 stages; 0) *register* the SIGTERM [signal (IPC)](https://en.wikipedia.org/wiki/Signal_(IPC)) handler, which is programmed to run all exit scripts in `/etc/docker/exit.d/` and terminate all services, 1) *run* all entry scripts in `/etc/docker/entry.d/`, 2) *start* services registered in `SVDIR=/etc/service/`, 3) *wait* forever, allowing the signal handler to catch the SIGTERM and run the exit scripts and terminate all services.
+
+The entry scripts are responsible for tasks like, seeding configurations, register services and reading state files. These scripts are run before the services are started.
+
+There is also exit script that take care of tasks like, writing state files. These scripts are run when docker sends the SIGTERM signal to the main process in the container. Both `docker stop` and `docker kill --signal=TERM` sends SIGTERM.
+
+## Build assembly
+
+The entry and exit scripts, discussed above, as well as other utility scrips are copied to the image during the build phase. The source file tree was designed to facilitate simple scanning, using wild-card matching, of source-module directories for files that should be copied to image. Directory names indicate its file types so they can be copied to the correct locations. The code snippet in the `Dockerfile` which achieves this is show below.
+
+```dockerfile
+COPY	src/*/bin $DOCKER_BIN_DIR/
+COPY	src/*/entry.d $DOCKER_ENTRY_DIR/
+```
+
+There is also a mechanism for excluding files from being copied to the image from some source-module directories. Source-module directories to be excluded are listed in the file [`.dockerignore`](https://docs.docker.com/engine/reference/builder/#dockerignore-file). Since we don't want files from the module `notused` we list it in the `.dockerignore` file:
+
+```sh
+src/notused
+```
+

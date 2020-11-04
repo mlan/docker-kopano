@@ -9,12 +9,12 @@ services:
       - "127.0.0.1:8008:80"    # WebApp & EAS (alt. HTTP)
       - "127.0.0.1:110:110"    # POP3
       - "127.0.0.1:143:143"    # IMAP
-      - "127.0.0.1:8080:8080"  # ICAL
+      - "127.0.0.1:8080:8080"  # CalDAV/iCAL
     depends_on:
       - auth
       - db
       - mta
-    environment:
+    environment: # Virgin config, ignored on restarts unless FORCE_CONFIG given.
       - USER_PLUGIN=ldap
       - LDAP_URI=ldap://auth:389/
       - MYSQL_HOST=db
@@ -25,6 +25,10 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
+      - POP3_LISTEN=*:110                       # also listen to eth0
+      - IMAP_LISTEN=*:143                       # also listen to eth0
+      - ICAL_LISTEN=*:8080                      # also listen to eth0
+      - DISABLED_FEATURES=${DISABLED_FEATURES-} # also enable IMAP and POP3
       - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
     volumes:
       - app-conf:/etc/kopano
@@ -44,7 +48,7 @@ services:
       - "127.0.0.1:25:25"      # SMTP
     depends_on:
       - auth
-    environment:
+    environment: # Virgin config, ignored on restarts unless FORCE_CONFIG given.
       - MESSAGE_SIZE_LIMIT=${MESSAGE_SIZE_LIMIT-25600000}
       - LDAP_HOST=auth
       - VIRTUAL_TRANSPORT=lmtp:app:2003
