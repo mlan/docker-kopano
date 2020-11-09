@@ -7,6 +7,7 @@
 - [docker](README.md) Added sections `Mail client configuration` and `Implementation`.
 - [docker](Dockerfile) Remove the `debugtools` build target. There already exists an `app-debugtools` target in the [`demo/Makefile`](demo/Makefile).
 - [docker](Dockerfile) Now use an unlock file, which is removed after a virgin container has been configured. This locks the configuration on restarts unless `FORCE_CONFIG` is given.
+- [docker](Dockerfile) To allow HTTP access to webapp we need `define("SECURE_COOKIES", false)` in `/etc/kopano/webapp/config.php`. Earlier is was `define("INSECURE_COOKIES", true)`.
 
 # 1.2.1
 

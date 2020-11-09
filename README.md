@@ -28,7 +28,7 @@ The `mlan/kopano` repository contains a multi staged built. You select which bui
 
 The version part of the tag is not based on the version of this repository. It is instead, based on the combined revision numbers of the nightly Kopano core and Kopano WebApp package suits that was available when building the images. For example, `8.7.80-3.5.2` indicates that the image was built using the 8.7.80 version of Kopano core and 3.5.2 version of Kopano WebApp.
 
-The build part of the tag is one of `full` and `core`. The image with tag `full` contain Kopano core components, as well as, the Kopano WebApp and Z-Push. The image with tag `core` contains the Kopano core components proving the server and IMAP, POP3 and ICAL access, but no web access.
+The build part of the tag is one of `full` and `core`. The image with tag `full` contain Kopano core components, as well as, the Kopano WebApp and Z-Push. The image with tag `core` contains the Kopano core components proving the server and IMAP, POP3 and ICAL access, but no web access.
 
 The tags `latest`, `full`, or `core` all reference the most recent builds.
 
@@ -365,6 +365,10 @@ respectively when a message is placed in either `var/lib/kopano/spamd/spam` or
 # Knowledge base
 
 Here some topics relevant for arranging a mail server are presented.
+
+## Kopano WebApp HTTP access
+
+The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to `define("SECURE_COOKIES", false);` in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS.
 
 ## Mail client configuration
 

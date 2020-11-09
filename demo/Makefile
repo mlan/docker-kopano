@@ -149,6 +149,12 @@ mta-show_doveconf:
 mta-show_postconf:
 	docker-compose exec mta postconf -n
 
+mta-show_mailq:
+	docker-compose exec mta mailq
+
+mta-flush_mailq:
+	docker-compose exec mta postqueue -f
+
 mta-hostaddr:
 	$(eval myhost := $(call _ip,$(COMPOSE_PROJECT_NAME)_mta_1))
 
@@ -183,13 +189,13 @@ app-man_server:
 app-man_ldap:
 	docker-compose exec app man kopano-ldap.cfg
 
-app-test_smtp: mta-test_smtp
-
-app-test_lmtp:
-	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A LMTP test message from me to you\n\nDelete me, please \n.\nQUIT\n" | nc -C $(call _ip,$(COMPOSE_PROJECT_NAME)_app_1) 2003
-
 app-hostaddr:
 	$(eval myhost := $(call _ip,$(COMPOSE_PROJECT_NAME)_app_1))
+
+app-test_smtp: mta-test_smtp
+
+app-test_lmtp: app-hostaddr
+	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A LMTP test message from me to you\n\nDelete me, please \n.\nQUIT\n" | nc -C $(myhost) 2003
 
 app-test_imap: app-hostaddr
 	curl imap://$(myhost) -X CAPABILITY

@@ -163,7 +163,7 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& dpkg-reconfigure php7-mapi \
 	&& . docker-common.sh \
 	&& . docker-config.sh \
-	&& dc_replace /etc/kopano/webapp/config.php 'define("INSECURE_COOKIES", false);' 'define("INSECURE_COOKIES", true);' \
+	&& dc_replace /etc/kopano/webapp/config.php 'define("SECURE_COOKIES", true);' 'define("SECURE_COOKIES", false);' \
 #	&& dc_fixmissing /etc/php/7.?/apache2/conf.d/kopano.ini /etc/php/7.?/mods-available/kopano.ini /etc/php5/conf.d/kopano.ini \
 	&& dc_replace /etc/apache2/sites-available/kopano-webapp.conf 'Alias /webapp /usr/share/kopano-webapp' '<VirtualHost *:80>\\nDocumentRoot /usr/share/kopano-webapp' \
 	&& echo '</VirtualHost>' >> /etc/apache2/sites-available/kopano-webapp.conf \
