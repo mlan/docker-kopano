@@ -1,14 +1,16 @@
 # 1.2.2
 
-- [kopano](src/kopano) Adding support for gateway / IMAP iCAL search configuration via envvars in, 50-kopano-apply-envvars.
-- [kopano](src/kopano) Fixed old bug where set but empty environment variable was ignored by 50-kopano-apply-envvars.
+- [kopano](src/kopano) Adding support for gateway / IMAP iCAL search configuration via envvars in, `50-kopano-apply-envvars`.
+- [kopano](src/kopano) Fixed old bug where set but empty environment variable was ignored by `50-kopano-apply-envvars`.
 - [demo](demo) Enable IMAP POP3 and CalDAV/iCAL in demo.
-- [docker](Dockerfile) Update kopano services.
+- [docker](Dockerfile) Update Kopano services.
 - [docker](README.md) Added sections `Mail client configuration` and `Implementation`.
+- [docker](Dockerfile) Remove the `debugtools` build target. There already exists an `app-debugtools` target in the [`demo/Makefile`](demo/Makefile).
+- [docker](Dockerfile) Now use an unlock file, which is removed after a virgin container has been configured. This locks the configuration on restarts unless `FORCE_CONFIG` is given.
 
 # 1.2.1
 
-- [docker](Dockerfile) The kopano installation now (version 10.0.6) populate all example-config files in /etc/kopano. This breaks our configuration, so we need to remove them. They can still be found here /usr/share/doc/kopano/example-config.
+- [docker](Dockerfile) The Kopano installation now (version 10.0.6) populate all example-config files in /etc/kopano. This breaks our configuration, so we need to remove them. They can still be found here /usr/share/doc/kopano/example-config.
 
 # 1.2.0
 

@@ -20,6 +20,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_RUNAS=kopano \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1 \
+	DOCKER_UNLOCK_FILE=/etc/kopano/.docker.unlock \
 	SYSLOG_OPTIONS='-S' \
 	SYSLOG_LEVEL=5
 #
@@ -113,7 +114,8 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	"-d kopano-grapi serve" \
 	"-d kopano-kapid serve --log-timestamp=false" \
 	"-d kopano-konnectd serve --log-timestamp=false" \
-	"-d kopano-monitor"
+	"-d kopano-monitor" \
+	&& echo "This file unlocks the configuration, so it will be deleted after initialization." > $DOCKER_UNLOCK_FILE
 #
 # Have runit's runsvdir start all services
 #
@@ -200,7 +202,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1
 #
-# Add Z-Push repository and install Z-Push configured to be used with kopano and apache
+# Add Z-Push repository and install Z-Push configured to be used with Kopano and Apache
 #
 RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST} ${REL})" \
 	&& echo "deb $debaddr/ /" > /etc/apt/sources.list.d/z-push.list \
@@ -218,25 +220,4 @@ RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST
 	&& dc_addafter /etc/apache2/conf-available/z-push.conf 'Alias /Microsoft-Server-ActiveSync' 'AliasMatch (?i)/Autodiscover/Autodiscover.xml "/usr/share/z-push/autodiscover/autodiscover.php"' '</IfModule>' \
 	&& dc_replace /usr/share/z-push/config.php 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, false);' 'define(\x27USE_CUSTOM_REMOTE_IP_HEADER\x27, \x27HTTP_X_FORWARDED_FOR\x27);' \
 	&& dc_replace /usr/share/z-push/config.php 'define(\x27LOGBACKEND\x27, \x27filelog\x27);' 'define(\x27LOGBACKEND\x27, \x27syslog\x27);'
-
-
-
-FROM full AS debugtools
-#
-# Optionaly install debug tools
-#
-RUN	apt-get update && apt-get install --yes --no-install-recommends \
-	less \
-	nano \
-	ldap-utils \
-	htop \
-	net-tools \
-	lsof \
-	iputils-ping
-#
-# clean up
-#
-#RUN	apt-get clean && rm -rf /var/lib/apt/lists/* /tmp/* /var/tmp/*
-
-
 

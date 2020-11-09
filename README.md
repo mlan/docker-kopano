@@ -28,9 +28,9 @@ The `mlan/kopano` repository contains a multi staged built. You select which bui
 
 The version part of the tag is not based on the version of this repository. It is instead, based on the combined revision numbers of the nightly Kopano core and Kopano WebApp package suits that was available when building the images. For example, `8.7.80-3.5.2` indicates that the image was built using the 8.7.80 version of Kopano core and 3.5.2 version of Kopano WebApp.
 
-The build part of the tag is one of `full`, `debugtools` and `core`. The image with tag `full` contain Kopano core components, as well as, the Kopano WebApp and Z-Push. The image with tag `debugtools` also contains some debug tools. The image with tag `core` contains the Kopano core components proving the server and IMAP, POP3 and ICAL access, but no web access.
+The build part of the tag is one of `full` and `core`. The image with tag `full` contain Kopano core components, as well as, the Kopano WebApp and Z-Push. The image with tag `core` contains the Kopano core components proving the server and IMAP, POP3 and ICAL access, but no web access.
 
-The tags `latest`, `full`, `debugtools` or `core` all reference the most recent builds.
+The tags `latest`, `full`, or `core` all reference the most recent builds.
 
 To exemplify the usage of the tags, lets assume that the latest version tag is `8.7.80-3.5.2`. In this case `latest`, `8.7.80-3.5.2`, `full`, and `full-8.7.80-3.5.2` all identify the same image.
 
@@ -196,12 +196,12 @@ There are at least three directories which should be considered for persistent s
 
 The `mlan/kopano` image contains an elaborate configuration / seeding procedure. The configuration is controlled by environment variables, described below.
 
-The seeding procedure will leave any existing configuration untouched. This is achieved by the using an unlock file: `DOCKER_UNLOCK_FILE=/srv/etc/.docker.unlock`.
+The seeding procedure will leave any existing configuration untouched. This is achieved by the using an unlock file: `DOCKER_UNLOCK_FILE=/etc/kopano/.docker.unlock`.
 During the image build this file is created. When the the container is started the configuration / seeding procedure will be executed if the `DOCKER_UNLOCK_FILE` can be found. Once the procedure completes the unlock file is deleted preventing the configuration / seeding procedure to run when the container is restarted.
 
 The unlock file approach was selected since it is difficult to accidentally _create_ a file.
 
-In the rare event that want to modify the configuration of an existing container you can override the default behavior by setting `FORCE_CONFIG=OVERWRITE` to a no-empty string.
+In the rare event that want to modify the configuration of an existing container you can override the default behavior by setting `FORCE_CONFIG=overwrite` to a no-empty string.
 
 ## Environment variables
 
@@ -372,7 +372,7 @@ Here some topics relevant for arranging a mail server are presented.
 
 Kopano, using [Z-Push](http://z-push.org/), allows native interfacing with Microsoft Outlook 2013 and above via the [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync) protocol, providing synchronization of mail, calendar, tasks and contacts. For details please see [Configuring Outlook](https://documentation.kopano.io/user_manual_kopanocore/configure_outlook.html).
 
-It can be interesting to know that there is a [Kopano OL Extension](https://kb.kopano.io/display/WIKI/Setting+up+the+Kopano+OL+Extension) that can improve productivity. To install it [download](https://download.kopano.io/community/olextension%3A/) and run the `KopanoOLExtension-<version>-combined.exe` file on your Windows PC.
+It can be interesting to know that there is a [Kopano OL Extension](https://kb.kopano.io/display/WIKI/Setting+up+the+Kopano+OL+Extension) that can improve productivity. To install it [download](https://download.kopano.io/community/olextension%3A/) and run the `KopanoOLExtension-<version>-combined.exe` file on your Windows PC.
 
 ### Mobile devices
 

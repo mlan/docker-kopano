@@ -1,0 +1,5 @@
+#!/bin/sh
+#
+# 10-docker-print-versions
+#
+dc_pkg_versions kopano-common kopano-webapp z-push-kopano

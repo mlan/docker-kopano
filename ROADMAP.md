@@ -1,9 +1,5 @@
 # Road map
 
-## Dockerfile
-
-Consider removing debugtools build target. There already exists a app-debugtools target in the demo Makefile.
-
 ## kDAV
 
 Consider integrating support for kDAV which provides CalDAV and CardDAV.

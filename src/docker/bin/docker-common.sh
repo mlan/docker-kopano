@@ -12,7 +12,7 @@ DOCKER_LOGUSAGE=${DOCKER_LOGUSAGE-usage}
 # Write messages to console if interactive or syslog if not.
 # Usage: inform priority message
 # The priority may be specified numerically or as a facility.level pair.
-# Example user.notice, or 1.6 level is one of: 
+# Example user.notice, or 1.6 level is one of:
 # 0|emerg|1|alert|2|crit|3|err|4|warning|5|notice|6|info|7|debug
 #
 dc_log() {
@@ -99,4 +99,32 @@ dc_update_loglevel() {
 		docker-service.sh "syslogd -nO- -l$loglevel $SYSLOG_OPTIONS"
 		[ -n "$DOCKER_RUNFUNC" ] && sv restart syslogd
 	fi
+}
+
+#
+# Print package versions
+#
+dc_pkg_versions() {
+	local pkgs="$@"
+	local len=$(echo $pkgs | tr " " "\n" | wc -L)
+	local ver ver_cmd sed_flt
+	local os=$(sed -rn 's/PRETTY_NAME="(.*)"/\1/p' /etc/os-release)
+	local kern=$(uname -r)
+	local host=$(uname -n)
+	dc_log 5 $host $os $kern
+	if [ -x "$(command -v apk)" ]; then
+		ver_cmd="apk info -s"
+		sed_flt="s/.*-(.*)-.*/\1/p"
+	elif [ -x "$(command -v apt)" ]; then
+		ver_cmd="apt list --installed"
+		sed_flt="s/[^ ]+ ([[:digit:]]+\.[[:digit:]]+\.[[:digit:]]+).*/\1/p"
+	else
+		dc_log 5 "No package manager found among: apk apt"
+	fi
+	for pkg in $pkgs; do
+		ver=$($ver_cmd $pkg 2> /dev/null | sed -rn "$sed_flt")
+		if [ -n "$ver" ]; then
+			printf "\t%-${len}s\t%s\n" $pkg $ver
+		fi
+	done
 }

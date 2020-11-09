@@ -1,6 +1,7 @@
 -include    *.mk .env .init.env
 
 srv_list ?= auth app db mta
+curl_dbg ?= -v
 _ip       = $(shell docker inspect -f \
 	'{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' \
 	$(1) | head -n1)
@@ -10,9 +11,11 @@ _ip       = $(shell docker inspect -f \
 variables:
 	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
 
-test: mta-test
+test: mta-test_quiet mta-test_smtp
 
-init: auth-up wait_11 auth-mod_index auth-add_user db-up mta-up app-up
+init: auth-init db-up mta-up app-up
+
+auth-init: auth-up wait_11 auth-mod_hash auth-mod_index auth-add_user
 
 ps:
 	docker-compose ps
@@ -73,10 +76,18 @@ web:
 	firefox localhost:8008 &
 
 auth-show_conf:
+	docker-compose exec auth ldap search -b cn=config "(cn=config)"
+	docker-compose exec auth ldap search -b cn=config olcDatabase={-1}frontend
 	docker-compose exec auth ldap search -b cn=config olcDatabase={1}mdb
 
 auth-show_user:
 	docker-compose exec auth ldap search -b "$(LDAP_BASE)"
+
+auth-show_cat0:
+	docker-compose exec auth slapcat -n0
+
+auth-show_cat1:
+	docker-compose exec auth slapcat -n1
 
 auth-add_user:
 	printf "dn: ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_USEROU)\n\ndn: ou=$(LDAP_GROUPOU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_GROUPOU)\n\ndn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: top\nobjectClass: inetOrgPerson\nobjectClass: $(LDAP_USEROBJ)\ncn: $(LDAP_TEST_USER)\nsn: $(LDAP_TEST_USER)\nuid: $(LDAP_TEST_USER)\nmail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)\nuidNumber: 1234\ngidNumber: 1234\nhomeDirectory: /home/$(LDAP_TEST_USER)\nuserPassword: $(LDAP_TEST_PASSWD)\n" \
@@ -86,12 +97,25 @@ auth-mod_index:
 	printf "dn: olcDatabase={1}mdb,cn=config\nchangetype: modify\nadd: olcDbIndex\nolcDbIndex: cn,ou,uid,mail eq\n" \
 	| docker-compose exec -T auth ldap modify
 
+auth-mod_hash:
+	printf "dn: olcDatabase={-1}frontend,cn=config\nchangetype: modify\nadd: olcPasswordHash\nolcPasswordHash: {CRYPT}\n\ndn: cn=config\nchangetype: modify\nadd: olcPasswordCryptSaltFormat\nolcPasswordCryptSaltFormat: \$$6\$$%%.16s\n" \
+	| docker-compose exec -T auth ldap modify
+
 mta-bayes:
 	docker-compose exec mta sh -c 'rm -f bayesian.database.gz && wget http://artinvoice.hu/spams/bayesian.database.gz && gunzip bayesian.database.gz && sa-learn --restore bayesian.database && chown -R amavis: /var/amavis/.spamassassin && rm -rf bayesian.database'
 
-mta-test:
-	printf "EHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! You can receive email.\n.\nQUIT\n" \
-	| nc -C localhost 25
+mta-test_quiet:
+	$(eval curl_dbg := )
+
+mta-test_smtp:
+	printf "From: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! You can receive email.\n" \
+	| curl smtp://localhost -s -T - $(curl_dbg) \
+	--mail-from test@example.biz --mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN)
+
+mta-test_smtp2:
+	printf "From: A info tester <test-info@example.biz>\nTo: <$(LDAP_TEST_USER)-info@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message \n\nGreat news! $(LDAP_TEST_USER)-info@$(MAIL_DOMAIN) can also receive email.\n" \
+	| curl smtp://localhost -s -T - $(curl_dbg) \
+	--mail-from test@example.biz --mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN)
 
 mta-razor:
 	docker-compose exec mta run amavis_register_razor
@@ -119,6 +143,29 @@ mta-encrypt:
 	$(eval secret := $(shell whiptail --backtitle "doveadm pw" --title "encrypt password" --inputbox "password" 8 78 secret 3>&1 1>&2 2>&3))
 	docker-compose exec mta doveadm pw -p $(secret)
 
+mta-show_doveconf:
+	docker-compose exec mta doveconf -n
+
+mta-show_postconf:
+	docker-compose exec mta postconf -n
+
+mta-hostaddr:
+	$(eval myhost := $(call _ip,$(COMPOSE_PROJECT_NAME)_mta_1))
+
+mta-test_auth:
+	docker-compose exec mta doveadm auth test $(LDAP_TEST_USER) $(LDAP_TEST_PASSWD)
+
+mta-test_imap: mta-hostaddr
+	curl imap://$(myhost) -X CAPABILITY
+	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+
+mta-test_rimap:
+	docker-compose exec mta curl imap://app -X CAPABILITY
+	docker-compose exec mta curl imap://app -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+
+mta-test_ldap: mta-debugtools
+	docker-compose exec mta ldapsearch -H ldap://auth:389 -xLLL -s base namingContexts
+
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
 
@@ -136,7 +183,7 @@ app-man_server:
 app-man_ldap:
 	docker-compose exec app man kopano-ldap.cfg
 
-app-test_smtp: mta-test
+app-test_smtp: mta-test_smtp
 
 app-test_lmtp:
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A LMTP test message from me to you\n\nDelete me, please \n.\nQUIT\n" | nc -C $(call _ip,$(COMPOSE_PROJECT_NAME)_app_1) 2003

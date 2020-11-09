@@ -1,0 +1,16 @@
+#!/bin/sh
+#
+# 50-kopano-config
+#
+# Functions defined in:
+# docker-config.sh 10-kopano-common
+#
+#
+
+#
+# Configure Kopano if it is unlocked.
+#
+if dc_is_unlocked; then
+	kopano_apply_envvars
+	kopano_apply_phpenvvars
+fi

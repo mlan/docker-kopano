@@ -17,7 +17,7 @@ variables:
 ps:
 	docker ps -a
 
-build-all: build_core build_full build_debugtools
+build-all: build_core build_full
 
 build: build_$(BLD_TGT)
 
