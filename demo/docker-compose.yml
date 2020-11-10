@@ -7,9 +7,12 @@ services:
       - backend
     ports:
       - "127.0.0.1:8008:80"    # WebApp & EAS (alt. HTTP)
-      - "127.0.0.1:110:110"    # POP3 (not needed if all devices can use EAS)
       - "127.0.0.1:143:143"    # IMAP (not needed if all devices can use EAS)
-      - "127.0.0.1:8080:8080"  # CalDAV (not needed if all devices can use EAS)
+      - "127.0.0.1:110:110"    # POP3 (not needed if all devices can use EAS)
+      - "127.0.0.1:8080:8080"  # ICAL (not needed if all devices can use EAS)
+      - "127.0.0.1:993:993"    # IMAPS (not needed if all devices can use EAS)
+      - "127.0.0.1:995:995"    # POP3S (not needed if all devices can use EAS)
+      - "127.0.0.1:8443:8443"  # ICALS (not needed if all devices can use EAS)
     depends_on:
       - auth
       - db
@@ -25,9 +28,12 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
-      - POP3_LISTEN=*:110                       # also listen to eth0
       - IMAP_LISTEN=*:143                       # also listen to eth0
+      - POP3_LISTEN=*:110                       # also listen to eth0
       - ICAL_LISTEN=*:8080                      # also listen to eth0
+      - IMAPS_LISTEN=*:993                      # enable TLS
+      - POP3S_LISTEN=*:995                      # enable TLS
+      - ICALS_LISTEN=*:8443                     # enable TLS
       - DISABLED_FEATURES=${DISABLED_FEATURES-} # also enable IMAP and POP3
       - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
     volumes:
@@ -46,6 +52,7 @@ services:
       - backend
     ports:
       - "127.0.0.1:25:25"      # SMTP
+      - "127.0.0.1:465:465"    # SMTPS authentication required
     depends_on:
       - auth
     environment: # Virgin config, ignored on restarts unless FORCE_CONFIG given.
@@ -55,6 +62,7 @@ services:
       - SMTP_RELAY_HOSTAUTH=${SMTP_RELAY_HOSTAUTH-}
       - SMTP_TLS_SECURITY_LEVEL=${SMTP_TLS_SECURITY_LEVEL-}
       - SMTP_TLS_WRAPPERMODE=${SMTP_TLS_WRAPPERMODE-no}
+      - SMTPD_USE_TLS=yes
       - LDAP_USER_BASE=ou=${LDAP_USEROU-users},${LDAP_BASE-dc=example,dc=com}
       - LDAP_QUERY_FILTER_USER=(&(objectclass=${LDAP_USEROBJ-posixAccount})(mail=%s))
       - LDAP_QUERY_ATTRS_PASS=uid=user

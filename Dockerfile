@@ -16,8 +16,9 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_CONF_DIR1=/etc/kopano \
 	DOCKER_CONF_DIR2=/usr/share/z-push \
 	DOCKER_APPL_LIB=/var/lib/kopano \
+	DOCKER_APPL_SSL_DIR=/etc/kopano/ssl \
 	KOPANO_SPAMD_LIB=/var/lib/kopano/spamd \
-	DOCKER_RUNAS=kopano \
+	DOCKER_APPL_RUNAS=kopano \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
 	DOCKER_BUILD_PASSES=1 \
 	DOCKER_UNLOCK_FILE=/etc/kopano/.docker.unlock \
@@ -99,8 +100,9 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
 	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
-	&& mkdir -p /var/lib/kopano/attachments && chown $DOCKER_RUNAS: /var/lib/kopano/attachments \
-	&& mkdir -p $KOPANO_SPAMD_LIB/ham && chown $DOCKER_RUNAS: $KOPANO_SPAMD_LIB/ham \
+	&& mkdir -p /var/lib/kopano/attachments && chown $DOCKER_APPL_RUNAS: /var/lib/kopano/attachments \
+	&& mkdir -p $DOCKER_APPL_SSL_DIR \
+	&& mkdir -p $KOPANO_SPAMD_LIB/ham && chown $DOCKER_APPL_RUNAS: $KOPANO_SPAMD_LIB/ham \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
 	&& rm $DOCKER_CONF_DIR1/*.cfg \
 	&& docker-service.sh \

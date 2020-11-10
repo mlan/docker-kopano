@@ -57,15 +57,18 @@ An example of how to configure an web mail server using docker compose is given 
 version: '3'
 
 services:
-  app:
+   app:
     image: mlan/kopano
     networks:
       - backend
     ports:
       - "127.0.0.1:8008:80"    # WebApp & EAS (alt. HTTP)
-      - "127.0.0.1:110:110"    # POP3 (not needed if all devices can use EAS)
       - "127.0.0.1:143:143"    # IMAP (not needed if all devices can use EAS)
-      - "127.0.0.1:8080:8080"  # CalDAV (not needed if all devices can use EAS)
+      - "127.0.0.1:110:110"    # POP3 (not needed if all devices can use EAS)
+      - "127.0.0.1:8080:8080"  # ICAL (not needed if all devices can use EAS)
+      - "127.0.0.1:993:993"    # IMAPS (not needed if all devices can use EAS)
+      - "127.0.0.1:995:995"    # POP3S (not needed if all devices can use EAS)
+      - "127.0.0.1:8443:8443"  # ICALS (not needed if all devices can use EAS)
     depends_on:
       - auth
       - db
@@ -81,9 +84,12 @@ services:
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
-      - POP3_LISTEN=*:110                       # also listen to eth0
       - IMAP_LISTEN=*:143                       # also listen to eth0
+      - POP3_LISTEN=*:110                       # also listen to eth0
       - ICAL_LISTEN=*:8080                      # also listen to eth0
+      - IMAPS_LISTEN=*:993                      # enable TLS
+      - POP3S_LISTEN=*:995                      # enable TLS
+      - ICALS_LISTEN=*:8443                     # enable TLS
       - DISABLED_FEATURES=${DISABLED_FEATURES-} # also enable IMAP and POP3
       - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
     volumes:
@@ -291,7 +297,7 @@ Adds an extra filter to the user search. Default `LDAP_USER_SEARCH_FILTER=`
 
 Hint: Use the `kopanoAccount` attribute in the filter to differentiate between non-kopano and kopano users.
 
-### Enabling IMAP, POP3 and ICAL
+## Enabling IMAP, POP3 and ICAL
 
 By default the IMAP and POP3 services are disabled for all users. Set the environment variable `DISABLED_FEATURES=` to an empty string to enable both IMAP and POP3 for all users.
 
@@ -299,9 +305,23 @@ By default the IMAP and POP3 services are disabled for all users. Set the enviro
 
 The environment variable `DISABLED_FEATURES` take a space separated list of features. Currently it may contain the following features: `imap`, `mobile`, `outlook`, `pop3` and `webapp`. Default: `DISABLED_FEATURES="imap pop3"`
 
-#### `POP3_LISTEN`, `IMAP_LISTEN` and `ICAL_LISTEN`
+#### `IMAP_LISTEN`, `POP3_LISTEN`and `ICAL_LISTEN`
 
-By default the kopano-gateway and kopano-ical services are configured to only listen on the loopback interface. To be able to access these services we need them to listen to any interface. This is achieved by setting `POP3_LISTEN=*:110`, `IMAP_LISTEN=*:143` and `ICAL_LISTEN=*:8080`. These port numbers can be changed if desired.
+By default the kopano-gateway and kopano-ical services are configured to only listen on the loop-back interface. To be able to access these services we need them to listen to any interface. This is achieved by setting `IMAP_LISTEN=*:143`, `POP3_LISTEN=*:110` and `ICAL_LISTEN=*:8080`. These port numbers can be changed if desired.
+
+## Enabling IMAPS, POP3S and ICALS
+
+By default the secure protocols are not enabled.
+
+#### `IMAPS_LISTEN`, `POP3S_LISTEN`and `ICALS_LISTEN`
+
+To enable secure access we need to explicitly define their listening ports. This is achieved by setting any combination of `IMAPS_LISTEN=*:993`, `POP3S_LISTEN=*:995` and `ICALS_LISTEN=*:8443`. These port numbers can be changed if desired.
+
+If any of `IMAPS_LISTEN`, `POP3S_LISTEN` and `ICALS_LISTEN` are explicitly defined but there are no certificate files defined, a self-signed certificate will be generated  when the container is created.
+
+#### `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE`
+
+For most deployments a trusted TLS certificate is needed. When such are available, copy the [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) [PEM](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) certificate and private key files to the container and  use the envvars  `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` to let the kopano-gateway and kopano-ical services find them. For example `SSL_CERTIFICATE_FILE=/etc/kopano/ssl/cert.pem` and  `SSL_PRIVATE_KEY_FILE=/etc/kopano/ssl/priv_key.pem`. Note that these files need to be readable by the `kopano` user.
 
 ## Logging `SYSLOG_LEVEL`, `LOG_LEVEL`
 
@@ -368,7 +388,7 @@ Here some topics relevant for arranging a mail server are presented.
 
 ## Kopano WebApp HTTP access
 
-The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to `define("SECURE_COOKIES", false);` in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS.
+The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to `define("SECURE_COOKIES", false);` in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS.
 
 ## Mail client configuration
 

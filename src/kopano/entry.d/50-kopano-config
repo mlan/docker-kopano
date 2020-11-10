@@ -11,6 +11,9 @@
 # Configure Kopano if it is unlocked.
 #
 if dc_is_unlocked; then
+	kopano_export_tls_cert
+	kopano_generate_tls_cert
+	kopano_export_tls_cert
 	kopano_apply_envvars
 	kopano_apply_phpenvvars
 fi

@@ -1,3 +1,9 @@
+# 1.2.3
+
+- [kopano](src/kopano) Adding support for secure IMAPS, POP3S and ICALS.
+- [kopano](src/kopano) Now generate self-signed certs if needed.
+- [demo](demo) Enable IMAPS, POP3S, ICALS and SMTPS in demo.
+
 # 1.2.2
 
 - [kopano](src/kopano) Adding support for gateway / IMAP iCAL search configuration via envvars in, `50-kopano-apply-envvars`.

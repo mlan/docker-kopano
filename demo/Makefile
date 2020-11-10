@@ -1,7 +1,7 @@
 -include    *.mk .env .init.env
 
 srv_list ?= auth app db mta
-curl_dbg ?= -v
+curl_dbg ?= -v -s
 _ip       = $(shell docker inspect -f \
 	'{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' \
 	$(1) | head -n1)
@@ -11,11 +11,9 @@ _ip       = $(shell docker inspect -f \
 variables:
 	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
 
-test: mta-test_quiet mta-test_smtp
+test: all-test_quiet mta-test_smtp
 
-init: auth-init db-up mta-up app-up
-
-auth-init: auth-up wait_11 auth-mod_hash auth-mod_index auth-add_user
+init: auth-init db-init mta-init app-init
 
 ps:
 	docker-compose ps
@@ -58,7 +56,7 @@ $(addsuffix -logs,$(srv_list)):
 	docker-compose logs $(patsubst %-logs,%,$@)
 
 $(addsuffix -sh,$(srv_list)):
-	docker-compose exec $(patsubst %-sh,%,$@) sh
+	docker-compose exec $(patsubst %-sh,%,$@) sh -c 'exec $$(getent passwd root | sed "s/.*://g")'
 
 $(addsuffix -env,$(srv_list)):
 	docker-compose exec $(patsubst %-env,%,$@) env
@@ -74,6 +72,8 @@ wait_%:
 
 web:
 	firefox localhost:8008 &
+
+auth-init: auth-up wait_11 auth-mod_hash auth-mod_index auth-add_user
 
 auth-show_conf:
 	docker-compose exec auth ldap search -b cn=config "(cn=config)"
@@ -101,21 +101,26 @@ auth-mod_hash:
 	printf "dn: olcDatabase={-1}frontend,cn=config\nchangetype: modify\nadd: olcPasswordHash\nolcPasswordHash: {CRYPT}\n\ndn: cn=config\nchangetype: modify\nadd: olcPasswordCryptSaltFormat\nolcPasswordCryptSaltFormat: \$$6\$$%%.16s\n" \
 	| docker-compose exec -T auth ldap modify
 
+mta-init: mta-up
+
 mta-bayes:
 	docker-compose exec mta sh -c 'rm -f bayesian.database.gz && wget http://artinvoice.hu/spams/bayesian.database.gz && gunzip bayesian.database.gz && sa-learn --restore bayesian.database && chown -R amavis: /var/amavis/.spamassassin && rm -rf bayesian.database'
 
-mta-test_quiet:
-	$(eval curl_dbg := )
-
 mta-test_smtp:
 	printf "From: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! You can receive email.\n" \
-	| curl smtp://localhost -s -T - $(curl_dbg) \
-	--mail-from test@example.biz --mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN)
+	| curl smtp://localhost -T - --mail-from test@example.biz \
+	--mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN) $(curl_dbg)
+
+mta-test_smtps:
+	printf "From: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTPS test message\n\nGreat news! You can receive secure email.\n" \
+	| curl smtps://localhost -T - --mail-from test@example.biz -k \
+	-u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) \
+	--mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN) $(curl_dbg)
 
 mta-test_smtp2:
 	printf "From: A info tester <test-info@example.biz>\nTo: <$(LDAP_TEST_USER)-info@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message \n\nGreat news! $(LDAP_TEST_USER)-info@$(MAIL_DOMAIN) can also receive email.\n" \
-	| curl smtp://localhost -s -T - $(curl_dbg) \
-	--mail-from test@example.biz --mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN)
+	| curl smtp://localhost -T - --mail-from test@example.biz \
+	--mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN) $(curl_dbg)
 
 mta-razor:
 	docker-compose exec mta run amavis_register_razor
@@ -172,8 +177,12 @@ mta-test_rimap:
 mta-test_ldap: mta-debugtools
 	docker-compose exec mta ldapsearch -H ldap://auth:389 -xLLL -s base namingContexts
 
+db-init: db-up
+
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
+
+app-init: app-up wait_5 app-public_store
 
 app-debugtools:
 	docker-compose exec app apt-get update
@@ -197,15 +206,25 @@ app-test_smtp: mta-test_smtp
 app-test_lmtp: app-hostaddr
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A LMTP test message from me to you\n\nDelete me, please \n.\nQUIT\n" | nc -C $(myhost) 2003
 
+app-test_proto: all-test_muted app-test_imap app-test_pop3 app-test_ical app-test_imaps app-test_pop3s app-test_icals
+
 app-test_imap: app-hostaddr
-	curl imap://$(myhost) -X CAPABILITY
-	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+
+app-test_imaps: app-hostaddr
+	curl imaps://$(myhost) -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
 
 app-test_pop3: app-hostaddr
-	curl pop3://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+	curl pop3://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+
+app-test_pop3s: app-hostaddr
+	curl pop3s://$(myhost) -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
 
 app-test_ical: app-hostaddr
-	curl http://$(myhost):8080 -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+	curl http://$(myhost):8080 -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+
+app-test_icals: app-hostaddr
+	curl https://$(myhost):8443 -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
 
 app-show_user1:
 	docker-compose exec app kopano-admin -l
@@ -218,3 +237,12 @@ app-show_sync:
 
 app-create_store:
 	docker-compose exec app kopano-admin --create-store $(LDAP_TEST_USER)
+
+app-public_store:
+	docker-compose exec app kopano-storeadm -h default: -P
+
+all-test_quiet:
+	$(eval curl_dbg := -s -S )
+
+all-test_muted:
+	$(eval curl_dbg := -s -S >/dev/null || true)
