@@ -85,10 +85,13 @@ dc_log_stamp() {
 }
 
 #
-# Tests if pkg is installed
+# Tests if command is in the path
 #
 dc_is_command() { [ -x "$(command -v $1)" ] ;}
 
+#
+# Tests if pkgs are installed
+#
 dc_is_installed() {
 	if dc_is_command apk; then
 		ver_cmd="apk -e info"
@@ -97,7 +100,9 @@ dc_is_installed() {
 	else
 		dc_log 5 "No package manager found among: apk dpkg"
 	fi
-	$ver_cmd $1 &>/dev/null
+	for cmd in $@; do
+		$ver_cmd $cmd > /dev/null 2>&1 || return 1
+	done
 }
 
 #

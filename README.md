@@ -321,7 +321,27 @@ If any of `IMAPS_LISTEN`, `POP3S_LISTEN` and `ICALS_LISTEN` are explicitly defin
 
 #### `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE`
 
-For most deployments a trusted TLS certificate is needed. When such are available, copy the [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) [PEM](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) certificate and private key files to the container and  use the envvars  `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` to let the kopano-gateway and kopano-ical services find them. For example `SSL_CERTIFICATE_FILE=/etc/kopano/ssl/cert.pem` and  `SSL_PRIVATE_KEY_FILE=/etc/kopano/ssl/priv_key.pem`. Note that these files need to be readable by the `kopano` user.
+For most deployments a trusted TLS certificate is needed. When such are available, copy the [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) [PEM](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) certificate and private key files to the container and  use the envvars  `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` to let the kopano-gateway and kopano-ical services find them. For example `SSL_CERTIFICATE_FILE=/etc/kopano/ssl/cert.pem` and  `SSL_PRIVATE_KEY_FILE=/etc/kopano/ssl/priv_key.pem`. Note that these files need to be readable by the `kopano` user.
+
+### Let’s Encrypt LTS certificates using [Traefik](https://docs.traefik.io/)
+
+[Let’s Encrypt](https://letsencrypt.org/) provide free, automated, authorized certificates when you can demonstrate control over your domain. [Automatic Certificate Management Environment (ACME)](https://en.wikipedia.org/wiki/Automated_Certificate_Management_Environment) is the protocol used for such demonstration. There are many agents and applications that supports ACME, e.g., [certbot](https://certbot.eff.org/). The reverse proxy [Traefik](https://docs.traefik.io/) also supports ACME.
+
+#### `ACME_FILE`, `ACME_POSTHOOK`
+
+The `mlan/kopano` image looks for a file `ACME_FILE=/acme/acme.json` at container startup and every time this file changes certificates within this file are extracted. If the host or domain name of one of those certificates matches `HOSTNAME=$(hostname)` or `DOMAIN=${HOSTNAME#*.}` it will be used for TLS support.
+
+Once the certificates and keys have been updated, we run the command in the environment variable `ACME_POSTHOOK="sv restart kopano-gateway kopano-ical"`. Kopano services needs to be restarted to update the LTS parameters. If such automatic reloading is not desired, set `ACME_POSTHOOK=` to empty.
+
+So reusing certificates from Traefik will work out of the box if the `/acme` directory in the Traefik container is also mounted in the `mlan/kopano` container.
+
+```bash
+docker run -d -name app -v proxy-acme:/acme:ro mlan/postfix
+```
+
+Note, if the target certificate Common Name (CN) or Subject Alternate Name (SAN) is changed the container needs to be restarted.
+
+Moreover, do not set any of `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` when using `ACME_FILE`.
 
 ## Logging `SYSLOG_LEVEL`, `LOG_LEVEL`
 

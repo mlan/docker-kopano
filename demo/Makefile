@@ -182,7 +182,7 @@ db-init: db-up
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
 
-app-init: app-up wait_5 app-public_store
+app-init: app-up wait_12 app-public_store
 
 app-debugtools:
 	docker-compose exec app apt-get update
@@ -206,7 +206,7 @@ app-test_smtp: mta-test_smtp
 app-test_lmtp: app-hostaddr
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A LMTP test message from me to you\n\nDelete me, please \n.\nQUIT\n" | nc -C $(myhost) 2003
 
-app-test_proto: all-test_muted app-test_imap app-test_pop3 app-test_ical app-test_imaps app-test_pop3s app-test_icals
+app-test_all: all-test_muted app-test_imap app-test_pop3 app-test_ical app-test_imaps app-test_pop3s app-test_icals
 
 app-test_imap: app-hostaddr
 	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
@@ -225,6 +225,9 @@ app-test_ical: app-hostaddr
 
 app-test_icals: app-hostaddr
 	curl https://$(myhost):8443 -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+
+app-test_tls: app-hostaddr
+	docker run --rm -it --network demo_backend drwetter/testssl.sh app:993 || true
 
 app-show_user1:
 	docker-compose exec app kopano-admin -l

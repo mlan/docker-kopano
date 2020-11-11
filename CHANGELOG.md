@@ -3,6 +3,8 @@
 - [kopano](src/kopano) Adding support for secure IMAPS, POP3S and ICALS.
 - [kopano](src/kopano) Now generate self-signed certs if needed.
 - [demo](demo) Enable IMAPS, POP3S, ICALS and SMTPS in demo.
+- [acme](src/acme) Added module providing Let's encrypt TLS certificates using ACME.
+- [acme](src/acme) Fixed ACME module shell (ash and bash) portability.
 
 # 1.2.2
 

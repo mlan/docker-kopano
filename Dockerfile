@@ -17,6 +17,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_CONF_DIR2=/usr/share/z-push \
 	DOCKER_APPL_LIB=/var/lib/kopano \
 	DOCKER_APPL_SSL_DIR=/etc/kopano/ssl \
+	DOCKER_ACME_SSL_DIR=/etc/ssl/acme \
 	KOPANO_SPAMD_LIB=/var/lib/kopano/spamd \
 	DOCKER_APPL_RUNAS=kopano \
 	DOCKER_BUILD_DEB_DIR=/tmp/deb \
@@ -43,6 +44,8 @@ RUN	apt-get update && apt-get install --yes --no-install-recommends \
 	ca-certificates \
 	tar \
 	gnupg \
+	jq \
+	inotify-tools \
 	&& docker-service.sh "syslogd -nO- -l$SYSLOG_LEVEL $SYSLOG_OPTIONS"
 
 
@@ -63,7 +66,7 @@ RUN	rm -f /etc/dpkg/dpkg.cfg.d/excludes \
 	man \
 	manpages \
 	bash-completion \
-	&& rm -r /var/lib/apt/lists/* 
+	&& rm -r /var/lib/apt/lists/*
 
 
 
@@ -102,9 +105,13 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
 	&& mkdir -p /var/lib/kopano/attachments && chown $DOCKER_APPL_RUNAS: /var/lib/kopano/attachments \
 	&& mkdir -p $DOCKER_APPL_SSL_DIR \
+	&& mkdir -p $DOCKER_ACME_SSL_DIR \
 	&& mkdir -p $KOPANO_SPAMD_LIB/ham && chown $DOCKER_APPL_RUNAS: $KOPANO_SPAMD_LIB/ham \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
 	&& rm $DOCKER_CONF_DIR1/*.cfg \
+	&& . docker-common.sh \
+	&& . docker-config.sh \
+	&& dc_comment /etc/ssl/openssl.cnf RANDFILE \
 	&& docker-service.sh \
 	"kopano-dagent -l" \
 	"kopano-gateway" \
