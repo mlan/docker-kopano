@@ -299,7 +299,7 @@ Hint: Use the `kopanoAccount` attribute in the filter to differentiate between n
 
 ## Enabling IMAP, POP3 and ICAL
 
-By default the IMAP and POP3 services are disabled for all users. Set the environment variable `DISABLED_FEATURES=` to an empty string to enable both IMAP and POP3 for all users.
+By default the [IMAP](https://www.atmail.com/blog/imap-commands/) and POP3 services are disabled for all users. Set the environment variable `DISABLED_FEATURES=` to an empty string to enable both IMAP and POP3 for all users.
 
 #### `DISABLED_FEATURES`
 
