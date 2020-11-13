@@ -6,6 +6,7 @@
 - [acme](src/acme) Added module providing Let's encrypt TLS certificates using ACME.
 - [acme](src/acme) Fixed ACME module shell (ash and bash) portability.
 - [test](test/Makefile) Arrange build tests.
+- [travis-ci](.travis.yml) Travis CI now run test-all.
 
 # 1.2.2
 

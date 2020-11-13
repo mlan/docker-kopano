@@ -91,8 +91,9 @@ test-all: test-up_0 test_1
 
 test_%: test-up_% test-waitl_% test-logs_% test-mail_% test-down_%
 	
+test-up: test-up_1
 
-test-up_0:
+test-up_0: test-up-net
 	#
 	#
 	# test (0) run without envvars (is there smoke?)
@@ -215,7 +216,7 @@ test-logs:
 test-sh:
 	docker exec -it $(APP_NAME) sh -c 'exec $$(getent passwd root | sed "s/.*://g")'
 
-test-diff-srv:
+test-diff:
 	docker container diff $(APP_NAME)
 
 test-sv:

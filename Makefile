@@ -5,17 +5,16 @@ BLD_ARG  ?=
 BLD_REPO ?= mlan/kopano
 BLD_VER  ?= latest
 BLD_TGT  ?= full
-SRC_VER  ?= $(shell src/kopano/bin/kopano-webaddr.sh -VV)
-
-_version  = $(if $(findstring $(BLD_TGT),$(1)),$(2),$(if $(findstring latest,$(2)),$(1),$(1)-$(2)))
-
-.PHONY:
-
-variables:
-	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
-
-ps:
-	docker ps -a
+SRC_CMD  ?= src/kopano/bin/kopano-webaddr.sh -VV
+SRC_VER  ?= $(shell $(SRC_CMD))
+IMG_REPO ?= $(BLD_REPO)
+IMG_VER  ?= $(BLD_VER)
+TST_ENV  ?= -C test
+TST_TGTE ?= $(addprefix test-,all diff down env htop imap lmtp logs mail pop3 sh sv up)
+TST_TGTI ?= test_% test-up_%
+_version  = $(if $(findstring $(BLD_TGT),$(1)),\
+$(if $(findstring latest,$(2)),latest $(1) $(SRC_VER) $(1)-$(SRC_VER),$(2) $(1)-$(2)),\
+$(if $(findstring latest,$(2)),$(1) $(1)-$(SRC_VER),$(1)-$(2)))
 
 build-all: build_core build_full
 
@@ -23,14 +22,25 @@ build: build_$(BLD_TGT)
 
 build_%: Dockerfile
 	docker build $(BLD_ARG) --target $* \
-	-t $(BLD_REPO):$(call _version,$*,$(BLD_VER)) \
-	-t $(BLD_REPO):$(call _version,$*,$(SRC_VER)) .
+	$(addprefix --tag $(BLD_REPO):,$(call _version,$*,$(BLD_VER))) .
 
 version:
-	src/kopano/bin/kopano-webaddr.sh -VV
+	$(SRC_CMD)
+
+variables:
+	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
+
+ps:
+	docker ps -a
 
 prune:
 	docker image prune
 
 clean:
 	docker images | grep $(BLD_REPO) | awk '{print $$1 ":" $$2}' | uniq | xargs docker rmi
+
+$(TST_TGTE):
+	${MAKE} $(TST_ENV) $@
+
+$(TST_TGTI):
+	${MAKE} $(TST_ENV) $@
