@@ -10,6 +10,16 @@ _ip       = $(shell docker inspect -f \
 CURL_DBG ?=
 
 TST_NAME ?= test
+SSL_KEYF ?= priv-key.pem
+SSL_CRTF ?= cert.pem
+SSL_CRTD ?= 30
+SSL_ACMF ?= acme.json
+TST_SSLD ?= ssl
+TST_ACMD ?= acme
+TST_KEY  ?= $(TST_SSLD)/$(SSL_KEYF)
+TST_CERT ?= $(TST_SSLD)/$(SSL_CRTF)
+TST_ACME ?= $(TST_ACMD)/$(SSL_ACMF)
+
 NET_NAME ?= test-net
 NET_ENV  ?= --network $(NET_NAME)
 
@@ -27,6 +37,8 @@ MAIL_PW1 ?= enigma
 MAIL_SUB ?= ~~~test~message~~~
 MAIL_MSG ?= Enjoy!
 
+WEB_TIT  ?= "Kopano WebApp"
+
 SQL_BASE ?= kopano
 SQL_USER ?= kopano
 SQL_PASS ?= secret
@@ -35,11 +47,11 @@ SQL_ENV  ?= \
 -e MYSQL_USER=$(SQL_USER) \
 -e MYSQL_PASSWORD=$(SQL_PASS) \
 
-
 APP_NAME ?= app
 APP_IMAG ?=
 APP_FQDN ?= $(APP_NAME).$(MAIL_DOM)
 APP_VOL  ?=
+APP_SSLD ?= /etc/kopano/ssl
 APP_ENV  ?= $(NET_ENV) $(SQL_ENV) \
 --name $(APP_NAME) \
 --hostname $(APP_FQDN) \
@@ -53,10 +65,16 @@ APP_ENV  ?= $(NET_ENV) $(SQL_ENV) \
 -e POP3_LISTEN=*:110 \
 -e ICAL_LISTEN=*:8080 \
 -e DISABLED_FEATURES=
-APPS_ENV ?= \
+APPS_ENV ?= $(APP_ENV) \
 -e IMAPS_LISTEN=*:993 \
 -e POP3S_LISTEN=*:995 \
 -e ICALS_LISTEN=*:8443
+APPF_ENV ?= $(APPS_ENV) \
+-e SSL_CERTIFICATE_FILE=$(APP_SSLD)/$(SSL_CRTF) \
+-e SSL_PRIVATE_KEY_FILE=$(APP_SSLD)/$(SSL_KEYF)
+APPA_ENV ?= $(APPS_ENV) \
+-e ACME_FILE=/$(TST_ACME) \
+-v $(shell pwd)/$(TST_ACMD):/$(TST_ACMD)
 
 DB_NAME  ?= db
 DB_IMG   ?= mariadb
@@ -86,12 +104,11 @@ variables:
 ps:
 	docker ps -a
 
-test-all: test-up_0 test_1
+test-all: test-up_0 test_1 test_2 test_3
 	
 
-test_%: test-up_% test-waitl_% test-logs_% test-mail_% test-down_%
+test_%: test-up_% test-waitl_% test-logs_% test-service_% test-down_%
 	
-test-up: test-up_1
 
 test-up_0: test-up-net
 	#
@@ -123,6 +140,7 @@ test-up_1: test-up-net test-up-auth_1
 	# test (1) ldap auth, sql db, and mail send recv
 	#
 	# send: curl lmtp://app -> srv mysql://db & srv ldap://auth
+	# recv: curl pop3://app
 	# recv: curl imap://app
 	#
 	#
@@ -130,20 +148,39 @@ test-up_1: test-up-net test-up-auth_1
 	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 	sleep $(TST_W8L1)
 
-test-up_2: test-up-net test-up-auth_2
+test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	#
 	#
-	# test (1) ldap auth, sql db, web and mail send recv secure
+	# test (2) ldap auth, sql db, mail send recv secure using pem cert files
 	#
 	# send: curl lmtp://app -> srv mysql://db & srv ldap://auth
-	# recv: curl imap://app
+	# recv: curl pop3s://app
+	# recv: curl imaps://app
 	#
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
-	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
+	docker run -d $(APPF_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
+	docker cp $(TST_SSLD)/. $(APP_NAME):$(APP_SSLD)
+	docker exec -i $(APP_NAME) chown -R kopano: $(APP_SSLD)
 
-test-mail: test-mail_0
-test-mail_%: test-lmtp_% test-waits_% test-pop3_% test-imap_%
+test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
+	#
+	#
+	# test (3) ldap auth, sql db, mail send recv secure using acme cert
+	#
+	# send: curl lmtp://app -> srv mysql://db & srv ldap://auth
+	# recv: curl pop3s://app
+	# recv: curl imaps://app
+	#
+	#
+	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	docker run -d $(APPA_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
+
+test-up: test-up_1
+
+test-service: test-service_0
+
+test-service_%: test-pop3_% test-imap_% test-http_%
 	#
 	#
 	# test ($*) successful
@@ -151,7 +188,7 @@ test-mail_%: test-lmtp_% test-waits_% test-pop3_% test-imap_%
 	#
 
 test-logs_%:
-	docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh' || true
+	-docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh'
 
 test-waits_%:
 	case $* in [1-4]) sleep $(TST_W8S1);; *) sleep $(TST_W8S2);; esac
@@ -181,31 +218,32 @@ test-up-auth_%:
 test-lmtp: test-lmtp_0
 test-lmtp_%:
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(MAIL_US1)@$(MAIL_DOM)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(MAIL_US1)@$(MAIL_DOM)>\nDate: $$(date)\nSubject: $(MAIL_SUB)$*\n$(MAIL_MSG)$*\n.\nQUIT\n"\
-	| nc -C $(call _ip,$(APP_NAME)) 2003
+	| nc -C $(call _ip,$(APP_NAME)) 2003 > /dev/null
+	case $* in [1-3]) sleep $(TST_W8S1);; [4-9]) sleep $(TST_W8S2);; esac
 
+test-cfg_%:
+	$(eval cfg_s := $(shell [ $* -ge 2 ] && echo s))
+	$(eval cfg_s := $(shell [ $* -ge 2 ] && echo s))
+
+# Note: cannot use prereq also in a proper target since it will change the
+# prereq order, eg. avoid the "3" in test-imaps: test-imap_3
 test-imap: test-imap_0
-test-imap_%:
-	docker run -i --rm $(NET_ENV) curlimages/curl -s imap://$(APP_NAME)/inbox \
-	-X "fetch 1 all" -u $(MAIL_US1):$(MAIL_PW1) | grep $(MAIL_SUB)$*
+test-imaps: test-imap_9
+test-imap_%: test-cfg_% test-lmtp_%
+	docker run -i --rm $(NET_ENV) curlimages/curl imap$(cfg_s)://$(APP_NAME)/inbox \
+	-s --ssl --anyauth -k -X "fetch 1 all" -u $(MAIL_US1):$(MAIL_PW1) | grep --color=always $(MAIL_SUB)$*
 
 test-pop3: test-pop3_0
-test-pop3_%:
-	docker run -i --rm $(NET_ENV) curlimages/curl -s pop3://$(APP_NAME)/1 \
-	-u $(MAIL_US1):$(MAIL_PW1) | grep $(MAIL_SUB)$*
+test-pop3s: test-pop3_9
+test-pop3_%: test-cfg_% test-lmtp_%
+	docker run -i --rm $(NET_ENV) curlimages/curl pop3$(cfg_s)://$(APP_NAME)/1 \
+	-s --ssl --anyauth -k -u $(MAIL_US1):$(MAIL_PW1) | grep --color=always $(MAIL_SUB)$*
 
-$(TST_CRT): $(TST_KEY)
-	openssl req -x509 -utf8 -new -batch -days $(TST_CRTD) \
-		-subj "/CN=$(TST_SRV)" -key $(TST_KEY) -out $(TST_CRT)
-
-$(TST_KEY): test/tmp
-	openssl genrsa -out $(TST_KEY)
-
-$(TST_ACME): $(TST_CRT)
-	mkdir -p $(shell dirname $(TST_ACME))
-	test/bin/gen-acme-json.sh $(TST_RADR)@$(TST_DOM) srv.$(TST_DOM) $(TST_KEY) $(TST_CRT) > $(TST_ACME)
-
-test-cert-rm:
-	rm $(TST_KEY) $(TST_CRT) $(TST_ACME)
+test-http: test-http_9
+test-http_%: test-cfg_%
+	if [ $* -ge 3 ]; then \
+	docker run -i --rm $(NET_ENV) curlimages/curl http://$(APP_NAME) -s | grep --color=always $(WEB_TIT) \
+	; fi
 
 test-env:
 	docker exec -it $(APP_NAME) env
@@ -230,11 +268,23 @@ test-debugtools:
 test-htop: test-debugtools
 	docker exec -it $(APP_NAME) htop
 
+test-tls: #--starttls imap
+	docker run --rm -it $(NET_ENV) drwetter/testssl.sh $(APP_NAME):993 || true
+
 test-cert-gen: $(TST_ACME)
 
-test-tls-srv_%:
-	$(eval tst_starttls := $(shell if [ $* != 465 ]; then echo --starttls smtp; fi ))
-	docker run --rm -it --network $(TST_NET) drwetter/testssl.sh $(tst_starttls) $(TST_SRV):$* || true
+test-cert-rm:
+	rm $(TST_KEY) $(TST_CRT) $(TST_ACME)
 
-test/tmp:
-	mkdir -p test/tmp
+$(TST_ACME): $(TST_ACMD) $(TST_CERT)
+	bin/gen-acme-json.sh $(MAIL_US1)@$(MAIL_DOM) $(APP_FQDN) $(TST_KEY) $(TST_CERT) > $(TST_ACME)
+
+$(TST_CERT): $(TST_KEY)
+	openssl req -x509 -utf8 -new -batch -days $(SSL_CRTD) \
+	-subj "/CN=$(APP_FQDN)" -key $(TST_KEY) -out $@
+
+$(TST_KEY): $(TST_SSLD)
+	openssl genrsa -out $@
+
+$(TST_SSLD) $(TST_ACMD):
+	mkdir -p $@
