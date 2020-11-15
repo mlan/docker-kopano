@@ -62,6 +62,7 @@ init_service() {
 	local sourcefile=
 	local sv_name cmd runsv_dir svlog_dir sv_log sv_down sv_force options
 	dc_log 7 "Called with args $@"
+	OPTIND=1
 	while getopts ":dfhln:s:q" opts; do
 		case "${opts}" in
 			d) sv_down="down"; add_opt "down";;

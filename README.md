@@ -319,9 +319,36 @@ To enable secure access we need to explicitly define their listening ports. This
 
 If any of `IMAPS_LISTEN`, `POP3S_LISTEN` and `ICALS_LISTEN` are explicitly defined but there are no certificate files defined, a self-signed certificate will be generated  when the container is created.
 
+### SSL/LTS certificate and private key
+
+For most deployments a trusted SSL/TLS certificate is desired. During startup the `mlan/kopano` looks for [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) [PEM](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) certificate and private key with these specific names: `/etc/kopano/ssl/cert.pem` and `/etc/kopano/ssl/priv_key.pem`. If found they will used by the secure protocols IMAPS, POP3S and ICALS. Moreover the file ownership will be changed if needed to make them readable by the Kopano services.
+
 #### `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE`
 
-For most deployments a trusted TLS certificate is needed. When such are available, copy the [RSA](https://en.wikipedia.org/wiki/RSA_(cryptosystem)) [PEM](https://en.wikipedia.org/wiki/Privacy-Enhanced_Mail) certificate and private key files to the container and  use the envvars  `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` to let the kopano-gateway and kopano-ical services find them. For example `SSL_CERTIFICATE_FILE=/etc/kopano/ssl/cert.pem` and  `SSL_PRIVATE_KEY_FILE=/etc/kopano/ssl/priv_key.pem`. Note that these files need to be readable by the `kopano` user.
+If you use other file names or directories, you let the Kopano services know by setting the variables `SSL_CERTIFICATE_FILE=/etc/kopano/ssl/cert.pem` and `SSL_PRIVATE_KEY_FILE=/etc/kopano/ssl/priv_key.pem` on the `docker run` command line or in the `docker-compose.yml` file.
+
+For testing purposes you can create a self-signed certificate using the `openssl` utility, see below. Note that this is not necessary since, when secure protocols are defined, a self-signed certificate and private key will be automatically be created during container startup if they are not found.
+
+```bash
+openssl genrsa -out ssl/priv_key.pem
+openssl req -x509 -utf8 -new -batch -subj "/CN=app" -key ssl/priv_key.pem -out ssl/cert.pem
+```
+
+One way to allow the container to read the certificate and private key is to bind mount the host directory holding the files to the container:
+
+```bash
+docker run -d -name app -v $pwd/ssl:/etc/kopano/ssl mlan/kopano
+```
+
+A other way is to copy them to the container:
+
+```bash
+docker create -name app mlan/kopano
+docker cp ssl/. app:/etc/kopano/ssl
+docker start app
+```
+
+If you copy the files to a running container you need to make sure that the user `kopano` can read them.
 
 ### Let’s Encrypt LTS certificates using [Traefik](https://docs.traefik.io/)
 
@@ -329,19 +356,20 @@ For most deployments a trusted TLS certificate is needed. When such are availabl
 
 #### `ACME_FILE`, `ACME_POSTHOOK`
 
-The `mlan/kopano` image looks for a file `ACME_FILE=/acme/acme.json` at container startup and every time this file changes certificates within this file are extracted. If the host or domain name of one of those certificates matches `HOSTNAME=$(hostname)` or `DOMAIN=${HOSTNAME#*.}` it will be used for TLS support.
+The `mlan/kopano` image looks for a file `ACME_FILE=/acme/acme.json` at container startup and every time this file changes certificates within this file are extracted. If the host or domain name of one of those certificates matches `HOSTNAME=$(hostname)` or `DOMAIN=${HOSTNAME#*.}` it will be used by the secure protocols.
 
 Once the certificates and keys have been updated, we run the command in the environment variable `ACME_POSTHOOK="sv restart kopano-gateway kopano-ical"`. Kopano services needs to be restarted to update the LTS parameters. If such automatic reloading is not desired, set `ACME_POSTHOOK=` to empty.
 
 So reusing certificates from Traefik will work out of the box if the `/acme` directory in the Traefik container is also mounted in the `mlan/kopano` container.
 
 ```bash
-docker run -d -name app -v proxy-acme:/acme:ro mlan/postfix
+docker run -d -name proxy -v proxy-acme:/acme traefik
+docker run -d -name app -v proxy-acme:/acme:ro mlan/kopano
 ```
 
 Note, if the target certificate Common Name (CN) or Subject Alternate Name (SAN) is changed the container needs to be restarted.
 
-Moreover, do not set any of `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` when using `ACME_FILE`.
+Moreover, do not set any of `SSL_CERTIFICATE_FILE` and `SSL_PRIVATE_KEY_FILE` when using `ACME_FILE`.
 
 ## Logging `SYSLOG_LEVEL`, `LOG_LEVEL`
 
@@ -408,7 +436,9 @@ Here some topics relevant for arranging a mail server are presented.
 
 ## Kopano WebApp HTTP access
 
-The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to `define("SECURE_COOKIES", false);` in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS.
+The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [Traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS.
+
+Note that prior to Kopano WebApp version 5.0.0 the corresponding parameter was `define("INSECURE_COOKIES", true);`, which provide the same functionality but with inverse logic.
 
 ## Mail client configuration
 

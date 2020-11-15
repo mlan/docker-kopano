@@ -141,14 +141,34 @@ dc_persist_mvdirs() {
 
 #
 # Conditionally change owner of files.
+# -a all
+# -r readable
+# -w writable
+# -x executable
 #
-dc_chowncond() {
+dc_cond_chown() {
+	dc_log 7 "Called with args: $@"
+	OPTIND=1
+	local find_opts="! -perm -404"
+	while getopts ":arwx" opts; do
+		case "${opts}" in
+			a) find_opts="";;
+			r) find_opts="! -perm -404";;
+			w) find_opts="! -perm -606";;
+			x) find_opts="! -perm -505";;
+		esac
+	done
+	shift $((OPTIND -1))
 	local user=$1
-	local dir=$2
+	shift
 	if id $user > /dev/null 2>&1; then
-		if [ -n "$(find $dir ! -user $user -print -exec chown -h $user: {} \;)" ]; then
-			dc_log 5 "Changed owner to $user for some files in $dir"
-		fi
+		for dir in $@; do
+			if [ -n "$(find $dir ! -user $user $find_opts -print -exec chown -h $user: {} \;)" ]; then
+				dc_log 5 "Changed owner to $user for some files in $dir"
+			fi
+		done
+	else
+		dc_log 3 "User $user is unknown."
 	fi
 }
 

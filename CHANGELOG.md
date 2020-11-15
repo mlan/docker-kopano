@@ -8,6 +8,8 @@
 - [test](test/Makefile) Arrange build tests.
 - [test](test/Makefile) Add SSL build tests.
 - [travis-ci](.travis.yml) Travis CI now run test-all.
+- [docker](src/docker/bin/docker-config.sh) Generalized `dc_cond_chown()`.
+- [kopano](src/kopano) Updated documentation and bug fix of support for secure IMAPS, POP3S and ICALS.
 
 # 1.2.2
 

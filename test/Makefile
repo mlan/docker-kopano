@@ -10,7 +10,7 @@ _ip       = $(shell docker inspect -f \
 CURL_DBG ?=
 
 TST_NAME ?= test
-SSL_KEYF ?= priv-key.pem
+SSL_KEYF ?= priv_key.pem
 SSL_CRTF ?= cert.pem
 SSL_CRTD ?= 30
 SSL_ACMF ?= acme.json
@@ -70,10 +70,8 @@ APPS_ENV ?= $(APP_ENV) \
 -e POP3S_LISTEN=*:995 \
 -e ICALS_LISTEN=*:8443
 APPF_ENV ?= $(APPS_ENV) \
--e SSL_CERTIFICATE_FILE=$(APP_SSLD)/$(SSL_CRTF) \
--e SSL_PRIVATE_KEY_FILE=$(APP_SSLD)/$(SSL_KEYF)
+-v $(shell pwd)/$(TST_SSLD):/$(APP_SSLD)
 APPA_ENV ?= $(APPS_ENV) \
--e ACME_FILE=/$(TST_ACME) \
 -v $(shell pwd)/$(TST_ACMD):/$(TST_ACMD)
 
 DB_NAME  ?= db
@@ -160,8 +158,6 @@ test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
 	docker run -d $(APPF_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
-	docker cp $(TST_SSLD)/. $(APP_NAME):$(APP_SSLD)
-	docker exec -i $(APP_NAME) chown -R kopano: $(APP_SSLD)
 
 test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
 	#
@@ -171,6 +167,7 @@ test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
 	# send: curl lmtp://app -> srv mysql://db & srv ldap://auth
 	# recv: curl pop3s://app
 	# recv: curl imaps://app
+	# web: curl http://app
 	#
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
@@ -271,10 +268,11 @@ test-htop: test-debugtools
 test-tls: #--starttls imap
 	docker run --rm -it $(NET_ENV) drwetter/testssl.sh $(APP_NAME):993 || true
 
-test-cert-gen: $(TST_ACME)
+test-ssl-gen: $(TST_ACME)
 
-test-cert-rm:
-	rm $(TST_KEY) $(TST_CRT) $(TST_ACME)
+test-ssl-rm:
+	rm -rf $(TST_SSLD) $(TST_ACMD)
+#	rm $(TST_KEY) $(TST_CRT) $(TST_ACME)
 
 $(TST_ACME): $(TST_ACMD) $(TST_CERT)
 	bin/gen-acme-json.sh $(MAIL_US1)@$(MAIL_DOM) $(APP_FQDN) $(TST_KEY) $(TST_CERT) > $(TST_ACME)
