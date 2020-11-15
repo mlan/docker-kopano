@@ -430,15 +430,21 @@ They will run `sa-learn --spam` or `sa-learn --ham`,
 respectively when a message is placed in either `var/lib/kopano/spamd/spam` or
 `var/lib/kopano/spamd/ham`.
 
+## Migrate old configuration to newer version of Kopano
+
+Sometimes a new version of Kopano breaks compatibility with old configurations. The `mlan/kopano` include some functionality to address such situations. Use`MIGRATE_CONFIG` to try to attempt all or a list of available fixes. `MIGRATE_CONFIG=1 2 3` is an example of a list of fixes and `MIGRATE_CONFIG=all`  attempts all fixes.
+
+### `MIGRATE_CONFIG=1` Rejected insecure request as configuration for SECURE_COOKIES is true
+
+Prior to Kopano WebApp version 5.0.0 the parameter was `define("INSECURE_COOKIES", true);` was used to allow HTTP access. Now [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) is used instead. This fix tries to update the configuration accordingly.
+
 # Knowledge base
 
 Here some topics relevant for arranging a mail server are presented.
 
 ## Kopano WebApp HTTP access
 
-The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [Traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS.
-
-Note that prior to Kopano WebApp version 5.0.0 the corresponding parameter was `define("INSECURE_COOKIES", true);`, which provide the same functionality but with inverse logic.
+The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [Traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS. Also see [`MIGRATE_CONFIG=1` Rejected insecure request as configuration for SECURE_COOKIES is true](#migrate_config=1-rejected-insecure-request-as-configuration-for-secure_cookies-is-true).
 
 ## Mail client configuration
 

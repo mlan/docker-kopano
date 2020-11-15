@@ -12,10 +12,6 @@ The following directives exist:
 !include common.cfg
 ```
 
-## ACME TLS
-
-Arrange ACME TLS certificates for kopano-gateway (IMAP POP3).
-
 ## Revisit Persistent Data
 
 Consider consolidating directories which are candidates for persistence under `/srv`.

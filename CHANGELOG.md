@@ -10,6 +10,7 @@
 - [travis-ci](.travis.yml) Travis CI now run test-all.
 - [docker](src/docker/bin/docker-config.sh) Generalized `dc_cond_chown()`.
 - [kopano](src/kopano) Updated documentation and bug fix of support for secure IMAPS, POP3S and ICALS.
+- [kopano](src/kopano) New, `MIGRATE_CONFIG=all` tries to make configs compatible with new versions.
 
 # 1.2.2
 

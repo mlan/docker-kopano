@@ -1,0 +1,27 @@
+#!/bin/sh
+#
+# 20-kopano-migrate
+#
+# Try to make configs compatible with new version if MIGRATE_CONFIG is defined.
+# Set MIGRATE_CONFIG=1 2 3 to list of fixes or MIGRATE_CONFIG=all to attempt all fixes.
+#
+kopano_apply_migrate_fixes() {
+	local applied
+	if [ -n "$MIGRATE_CONFIG" ]; then
+		for fix in ${MIGRATE_CONFIG/all/1}; do # list all fixes here
+		case $fix in
+		1) dc_replace /etc/kopano/webapp/config.php 'define("INSECURE_COOKIES", true);' 'define("SECURE_COOKIES", false);' ;;
+		*) fix= ;;
+		esac
+		if [ -n "$fix" ]; then
+			applied="$applied $fix"
+		fi
+		done
+		dc_log 5 "Applied fixes;$applied to configuration since MIGRATE_CONFIG=$MIGRATE_CONFIG"
+	fi
+}
+
+#
+# run
+#
+kopano_apply_migrate_fixes
