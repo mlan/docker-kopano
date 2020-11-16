@@ -12,12 +12,12 @@ Hopefully this repository can be retired once the Kopano community make official
 
 ## Features
 
-- Groupware server [Kopano WebApp](https://kopano.io/)
+- [Kopano WebApp](https://kopano.io/) the main client to access all the features provided by Kopano core
 - [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync) server [Z-Push](http://z-push.org/)
-- IMAP, POP3 and ICAL service Kopano
-- Secure protocols IMAPS, POP3S and ICALS.
+- IMAP, POP3 and ICAL services provided by Kopano core
+- Secure protocols IMAPS, POP3S and ICALS
 - Hooks for integrating [Let’s Encrypt](https://letsencrypt.org/) LTS certificates using the reverse proxy [Traefik](https://docs.traefik.io/)
-- Multi-staged build providing the images `full` and `core`
+- Multi-staged build providing the images `full` and `core`
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
 - Built in utility script [run](src/docker/bin/run) helping configuring Kopano components, WebApp and Z-Push

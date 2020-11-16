@@ -102,7 +102,7 @@ DB_ENV   ?= $(NET_ENV) $(SQL_ENV) \
 GREP_ENV ?=
 
 TST_W8S1 ?= 1
-TST_W8S2 ?= 80
+TST_W8S2 ?= 20
 TST_W8L1 ?= 20
 TST_W8L2 ?= 120
 
@@ -156,7 +156,6 @@ test-up_1: test-up-net test-up-auth_1
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
 	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
-	sleep $(TST_W8L1)
 
 test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	#
@@ -205,7 +204,7 @@ test-waits_%:
 	case $* in [1-4]) sleep $(TST_W8S1);; *) sleep $(TST_W8S2);; esac
 
 test-waitl_%:
-	case $* in [1-4]) sleep $(TST_W8L1);; *) sleep $(TST_W8L2);; esac
+	case $* in 0) sleep $(TST_W8L1);; *) sleep $(TST_W8L2);; esac
 
 test-up-net:
 	docker network create $(NET_NAME) 2>/dev/null || true
