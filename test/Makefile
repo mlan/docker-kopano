@@ -95,6 +95,7 @@ DB_NAME  ?= db
 DB_IMG   ?= mariadb
 DB_FQDN  ?= $(DB_NAME).$(MAIL_DOM)
 DB_VOL   ?=
+DB_CMD   ?= --log_warnings=1
 DB_ENV   ?= $(NET_ENV) $(SQL_ENV) \
 --name $(DB_NAME) \
 --hostname $(DB_FQDN) \
@@ -155,7 +156,7 @@ test-up_1: test-up-net test-up-auth_1
 	# recv: curl imap://app
 	#
 	#
-	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG) $(DB_CMD)
 	sleep $(TST_W8L1)
 	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 
@@ -169,7 +170,7 @@ test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	# recv: curl imaps://app
 	#
 	#
-	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG) $(DB_CMD)
 	sleep $(TST_W8L1)
 	docker run -d $(APPF_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 
@@ -184,7 +185,7 @@ test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
 	# web: curl http://app
 	#
 	#
-	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG) $(DB_CMD)
 	sleep $(TST_W8L1)
 	docker run -d $(APPA_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
 
@@ -201,6 +202,7 @@ test-service_%: test-pop3_% test-imap_% test-http_%
 
 test-logs_%:
 	-docker ps -a
+	-docker container logs $(AUT_NAME)
 	-docker container logs $(DB_NAME)
 	-docker container logs $(APP_NAME) # | grep 'docker-entrypoint.sh'
 
@@ -208,7 +210,7 @@ test-waits_%:
 	case $* in [1-4]) sleep $(TST_W8S1);; *) sleep $(TST_W8S2);; esac
 
 test-waitl_%:
-	case $* in 0) sleep $(TST_W8L1);; *) sleep $(TST_W8L2);; esac
+	case $* in [1-4]) sleep $(TST_W8L1);; *) sleep $(TST_W8L2);; esac
 
 test-up-net:
 	docker network create $(NET_NAME) 2>/dev/null || true
@@ -301,6 +303,7 @@ $(TST_CERT): $(TST_KEY)
 
 $(TST_KEY): $(TST_SSLD)
 	openssl genrsa -out $@
+	chmod a+r $@
 
 $(TST_SSLD) $(TST_ACMD):
 	mkdir -p $@

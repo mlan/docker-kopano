@@ -60,7 +60,7 @@ An example of how to configure an web mail server using docker compose is given 
 version: '3'
 
 services:
-   app:
+  app:
     image: mlan/kopano
     networks:
       - backend
