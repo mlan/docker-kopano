@@ -55,7 +55,6 @@ APP_ALOG ?= 6
 APP_ENV  ?= $(NET_ENV) $(SQL_ENV) \
 --name $(APP_NAME) \
 --hostname $(APP_FQDN) \
--p "127.0.0.1:2003:2003" \
 -e MYSQL_HOST=$(DB_NAME) \
 -e USER_PLUGIN=ldap \
 -e LDAP_URI=ldap://$(AUT_NAME):389/ \
@@ -76,6 +75,8 @@ APPF_ENV ?= $(APPS_ENV) \
 -v $(shell pwd)/$(TST_SSLD):/$(APP_SSLD)
 APPA_ENV ?= $(APPS_ENV) \
 -v $(shell pwd)/$(TST_ACMD):/$(TST_ACMD)
+
+#-p "127.0.0.1:2003:2003"
 
 AUT_NAME ?= auth
 AUT_IMG  ?= mlan/openldap
@@ -155,6 +156,7 @@ test-up_1: test-up-net test-up-auth_1
 	#
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	sleep $(TST_W8L1)
 	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 
 test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
@@ -168,6 +170,7 @@ test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	#
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	sleep $(TST_W8L1)
 	docker run -d $(APPF_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 
 test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
@@ -182,6 +185,7 @@ test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
 	#
 	#
 	docker run -d $(DB_ENV) $(DB_VOL) $(DB_IMG)
+	sleep $(TST_W8L1)
 	docker run -d $(APPA_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
 
 test-up: test-up_1
@@ -228,8 +232,8 @@ test-up-auth_%:
 test-lmtp: test-lmtp_0
 test-lmtp_%:
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(MAIL_US1)@$(MAIL_DOM)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(MAIL_US1)@$(MAIL_DOM)>\nDate: $$(date)\nSubject: $(MAIL_SUB)$*\n$(MAIL_MSG)$*\n.\nQUIT\n"\
-	| nc -C localhost 2003 # > /dev/null
-#	| nc -C $(call _ip,$(APP_NAME)) 2003 # > /dev/null
+	| nc -C $(call _ip,$(APP_NAME)) 2003 # > /dev/null
+#	| nc -C localhost 2003 # > /dev/null
 	case $* in [1-3]) sleep $(TST_W8S1);; [4-9]) sleep $(TST_W8S2);; esac
 
 test-cfg_%:
