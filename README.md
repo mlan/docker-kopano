@@ -6,7 +6,7 @@
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
 
-This (non official) repository provides dockerized web mail service as well as Exchange ActiveSync (EAS), ICAL, IMAP and POP3 service. It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
+This (non official) repository provides dockerized web mail service as well as Exchange ActiveSync (EAS), IMAP, POP3 and ICAL service (and their secure variants  IMAPS, POP3S and ICALS). It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
 
 Hopefully this repository can be retired once the Kopano community make official images available. To learn more about this activity see [zokradonh/kopano-docker](https://github.com/zokradonh/kopano-docker).
 
@@ -14,10 +14,13 @@ Hopefully this repository can be retired once the Kopano community make official
 
 - Groupware server [Kopano WebApp](https://kopano.io/)
 - [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync) server [Z-Push](http://z-push.org/)
-- Multi-staged build providing the images `full`, `debugtools` and `core`
+- IMAP, POP3 and ICAL service Kopano
+- Secure protocols IMAPS, POP3S and ICALS.
+- Hooks for integrating [Let’s Encrypt](https://letsencrypt.org/) LTS certificates using the reverse proxy [Traefik](https://docs.traefik.io/)
+- Multi-staged build providing the images `full` and `core`
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
-- Built in utility script [conf](src/docker/bin/conf) helping configuring Kopano components, WebApp and Z-Push
+- Built in utility script [run](src/docker/bin/run) helping configuring Kopano components, WebApp and Z-Push
 - Health check
 - Hook for theming
 - Demo based on `docker-compose.yml` and `Makefile` files

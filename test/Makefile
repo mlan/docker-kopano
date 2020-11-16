@@ -7,8 +7,6 @@ _ip       = $(shell docker inspect -f \
 	'{{range .NetworkSettings.Networks}}{{println .IPAddress}}{{end}}' \
 	$(1) | head -n1)
 
-CURL_DBG ?=
-
 TST_NAME ?= test
 SSL_KEYF ?= priv_key.pem
 SSL_CRTF ?= cert.pem
@@ -48,7 +46,7 @@ SQL_ENV  ?= \
 -e MYSQL_PASSWORD=$(SQL_PASS) \
 
 APP_NAME ?= app
-APP_IMAG ?=
+APP_IMG  ?=
 APP_FQDN ?= $(APP_NAME).$(MAIL_DOM)
 APP_VOL  ?=
 APP_SSLD ?= /etc/kopano/ssl
@@ -74,6 +72,19 @@ APPF_ENV ?= $(APPS_ENV) \
 APPA_ENV ?= $(APPS_ENV) \
 -v $(shell pwd)/$(TST_ACMD):/$(TST_ACMD)
 
+AUT_NAME ?= auth
+AUT_IMG  ?= mlan/openldap
+AUT_FQDN ?= $(AUT_NAME).$(MAIL_DOM)
+AUT_VOL  ?=
+AUT_ENV  ?= $(NET_ENV) \
+--name $(AUT_NAME) \
+--hostname $(AUT_FQDN) \
+
+CURL_OPT ?= -s -v
+CURL_IMG ?= curlimages/curl
+CURL_ENV ?= $(NET_ENV) \
+-i --rm
+
 DB_NAME  ?= db
 DB_IMG   ?= mariadb
 DB_FQDN  ?= $(DB_NAME).$(MAIL_DOM)
@@ -83,13 +94,7 @@ DB_ENV   ?= $(NET_ENV) $(SQL_ENV) \
 --hostname $(DB_FQDN) \
 -e MYSQL_ROOT_PASSWORD=$(SQL_PASS)
 
-AUT_NAME ?= auth
-AUT_IMG  ?= mlan/openldap
-AUT_FQDN ?= $(AUT_NAME).$(MAIL_DOM)
-AUT_VOL  ?=
-AUT_ENV  ?= $(NET_ENV) \
---name $(AUT_NAME) \
---hostname $(AUT_FQDN) \
+#GREP_ENV ?= --color=always
 
 TST_W8S1 ?= 1
 TST_W8S2 ?= 80
@@ -107,6 +112,8 @@ test-all: test-up_0 test_1 test_2 test_3
 
 test_%: test-up_% test-waitl_% test-logs_% test-service_% test-down_%
 	
+test-pull:
+	$(addprefix docker pull -q ,$(CURL_IMG); $(AUT_IMG); $(DB_IMG))
 
 test-up_0: test-up-net
 	#
@@ -185,7 +192,7 @@ test-service_%: test-pop3_% test-imap_% test-http_%
 	#
 
 test-logs_%:
-	-docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh'
+	-docker container logs $(APP_NAME) # | grep 'docker-entrypoint.sh'
 
 test-waits_%:
 	case $* in [1-4]) sleep $(TST_W8S1);; *) sleep $(TST_W8S2);; esac
@@ -215,7 +222,7 @@ test-up-auth_%:
 test-lmtp: test-lmtp_0
 test-lmtp_%:
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(MAIL_US1)@$(MAIL_DOM)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(MAIL_US1)@$(MAIL_DOM)>\nDate: $$(date)\nSubject: $(MAIL_SUB)$*\n$(MAIL_MSG)$*\n.\nQUIT\n"\
-	| nc -C $(call _ip,$(APP_NAME)) 2003 > /dev/null
+	| nc -C $(call _ip,$(APP_NAME)) 2003 # > /dev/null
 	case $* in [1-3]) sleep $(TST_W8S1);; [4-9]) sleep $(TST_W8S2);; esac
 
 test-cfg_%:
@@ -227,19 +234,19 @@ test-cfg_%:
 test-imap: test-imap_0
 test-imaps: test-imap_9
 test-imap_%: test-cfg_% test-lmtp_%
-	docker run -i --rm $(NET_ENV) curlimages/curl imap$(cfg_s)://$(APP_NAME)/inbox \
-	-s --ssl --anyauth -k -X "fetch 1 all" -u $(MAIL_US1):$(MAIL_PW1) | grep --color=always $(MAIL_SUB)$*
+	docker run $(CURL_ENV) $(CURL_IMG) $(CURL_OPT) imap$(cfg_s)://$(APP_NAME)/inbox \
+	--ssl --anyauth -k -X "fetch 1 all" -u $(MAIL_US1):$(MAIL_PW1) | grep $(GREP_ENV) $(MAIL_SUB)$*
 
 test-pop3: test-pop3_0
 test-pop3s: test-pop3_9
 test-pop3_%: test-cfg_% test-lmtp_%
-	docker run -i --rm $(NET_ENV) curlimages/curl pop3$(cfg_s)://$(APP_NAME)/1 \
-	-s --ssl --anyauth -k -u $(MAIL_US1):$(MAIL_PW1) | grep --color=always $(MAIL_SUB)$*
+	docker run $(CURL_ENV) $(CURL_IMG) $(CURL_OPT) pop3$(cfg_s)://$(APP_NAME)/1 \
+	--ssl --anyauth -k -u $(MAIL_US1):$(MAIL_PW1) | grep $(GREP_ENV) $(MAIL_SUB)$*
 
 test-http: test-http_9
 test-http_%: test-cfg_%
 	if [ $* -ge 3 ]; then \
-	docker run -i --rm $(NET_ENV) curlimages/curl http://$(APP_NAME) -s | grep --color=always $(WEB_TIT) \
+	docker run $(CURL_ENV) $(CURL_IMG) $(CURL_OPT) http://$(APP_NAME) | grep $(GREP_ENV) $(WEB_TIT) \
 	; fi
 
 test-env:
