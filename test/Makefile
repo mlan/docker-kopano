@@ -50,9 +50,12 @@ APP_IMG  ?=
 APP_FQDN ?= $(APP_NAME).$(MAIL_DOM)
 APP_VOL  ?=
 APP_SSLD ?= /etc/kopano/ssl
+APP_SLOG ?= 7
+APP_ALOG ?= 6
 APP_ENV  ?= $(NET_ENV) $(SQL_ENV) \
 --name $(APP_NAME) \
 --hostname $(APP_FQDN) \
+-p "127.0.0.1:2003:2003" \
 -e MYSQL_HOST=$(DB_NAME) \
 -e USER_PLUGIN=ldap \
 -e LDAP_URI=ldap://$(AUT_NAME):389/ \
@@ -62,7 +65,9 @@ APP_ENV  ?= $(NET_ENV) $(SQL_ENV) \
 -e IMAP_LISTEN=*:143 \
 -e POP3_LISTEN=*:110 \
 -e ICAL_LISTEN=*:8080 \
--e DISABLED_FEATURES=
+-e DISABLED_FEATURES= \
+-e SYSLOG_LEVEL=$(APP_SLOG) \
+-e LOG_LEVEL=$(APP_ALOG)
 APPS_ENV ?= $(APP_ENV) \
 -e IMAPS_LISTEN=*:993 \
 -e POP3S_LISTEN=*:995 \
@@ -94,7 +99,7 @@ DB_ENV   ?= $(NET_ENV) $(SQL_ENV) \
 --hostname $(DB_FQDN) \
 -e MYSQL_ROOT_PASSWORD=$(SQL_PASS)
 
-#GREP_ENV ?= --color=always
+GREP_ENV ?=
 
 TST_W8S1 ?= 1
 TST_W8S2 ?= 80
@@ -192,6 +197,8 @@ test-service_%: test-pop3_% test-imap_% test-http_%
 	#
 
 test-logs_%:
+	-docker ps -a
+	-docker container logs $(DB_NAME)
 	-docker container logs $(APP_NAME) # | grep 'docker-entrypoint.sh'
 
 test-waits_%:
@@ -222,7 +229,8 @@ test-up-auth_%:
 test-lmtp: test-lmtp_0
 test-lmtp_%:
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(MAIL_US1)@$(MAIL_DOM)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(MAIL_US1)@$(MAIL_DOM)>\nDate: $$(date)\nSubject: $(MAIL_SUB)$*\n$(MAIL_MSG)$*\n.\nQUIT\n"\
-	| nc -C $(call _ip,$(APP_NAME)) 2003 # > /dev/null
+	| nc -C localhost 2003 # > /dev/null
+#	| nc -C $(call _ip,$(APP_NAME)) 2003 # > /dev/null
 	case $* in [1-3]) sleep $(TST_W8S1);; [4-9]) sleep $(TST_W8S2);; esac
 
 test-cfg_%:
