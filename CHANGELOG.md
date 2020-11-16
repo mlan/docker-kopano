@@ -11,6 +11,8 @@
 - [docker](src/docker/bin/docker-config.sh) Generalized `dc_cond_chown()`.
 - [kopano](src/kopano) Updated documentation and bug fix of support for secure IMAPS, POP3S and ICALS.
 - [kopano](src/kopano) New, `MIGRATE_CONFIG=all` tries to make configs compatible with new versions.
+- [test](test/Makefile) Some sleep time in between db and app speeds up overall test times.
+- [travis-ci](.travis.yml) Fixed test errors on Travis-CI, which was due to long SQL db initialization.
 
 # 1.2.2
 

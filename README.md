@@ -6,7 +6,7 @@
 ![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
 
-This (non official) repository provides dockerized web mail service as well as Exchange ActiveSync (EAS), IMAP, POP3 and ICAL service (and their secure variants  IMAPS, POP3S and ICALS). It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
+This (non official) repository provides dockerized web mail service as well as Exchange ActiveSync (EAS), IMAP, POP3 and ICAL service (and their secure variants IMAPS, POP3S and ICALS). It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
 
 Hopefully this repository can be retired once the Kopano community make official images available. To learn more about this activity see [zokradonh/kopano-docker](https://github.com/zokradonh/kopano-docker).
 
@@ -320,7 +320,7 @@ By default the secure protocols are not enabled.
 
 To enable secure access we need to explicitly define their listening ports. This is achieved by setting any combination of `IMAPS_LISTEN=*:993`, `POP3S_LISTEN=*:995` and `ICALS_LISTEN=*:8443`. These port numbers can be changed if desired.
 
-If any of `IMAPS_LISTEN`, `POP3S_LISTEN` and `ICALS_LISTEN` are explicitly defined but there are no certificate files defined, a self-signed certificate will be generated  when the container is created.
+If any of `IMAPS_LISTEN`, `POP3S_LISTEN` and `ICALS_LISTEN` are explicitly defined but there are no certificate files defined, a self-signed certificate will be generated when the container is created.
 
 ### SSL/LTS certificate and private key
 
@@ -435,7 +435,7 @@ respectively when a message is placed in either `var/lib/kopano/spamd/spam` or
 
 ## Migrate old configuration to newer version of Kopano
 
-Sometimes a new version of Kopano breaks compatibility with old configurations. The `mlan/kopano` include some functionality to address such situations. Use`MIGRATE_CONFIG` to try to attempt all or a list of available fixes. `MIGRATE_CONFIG=1 2 3` is an example of a list of fixes and `MIGRATE_CONFIG=all`  attempts all fixes.
+Sometimes a new version of Kopano breaks compatibility with old configurations. The `mlan/kopano` include some functionality to address such situations. Use`MIGRATE_CONFIG` to try to attempt all or a list of available fixes. `MIGRATE_CONFIG=1 2 3` is an example of a list of fixes and `MIGRATE_CONFIG=all` attempts all fixes.
 
 ### `MIGRATE_CONFIG=1` Rejected insecure request as configuration for SECURE_COOKIES is true
 
@@ -447,7 +447,7 @@ Here some topics relevant for arranging a mail server are presented.
 
 ## Kopano WebApp HTTP access
 
-The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [Traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS. Also see [`MIGRATE_CONFIG=1` Rejected insecure request as configuration for SECURE_COOKIES is true](#migrate_config=1-rejected-insecure-request-as-configuration-for-secure_cookies-is-true).
+The distribution installation of `kopano-webapp` only allow HTTPS access. The `mlan/kopano` image updates the configuration to [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) in `/etc/kopano/webapp/config.php` also allowing HTTP access. This can be useful when arranging the `mlan/kopano` container behind a reverse proxy, like [Traefik](https://doc.traefik.io/traefik/), which then does the enforcement of HTTPS. Also see [`MIGRATE_CONFIG=1` Rejected insecure request as configuration for SECURE_COOKIES is true](#migrate_config1-rejected-insecure-request-as-configuration-for-secure_cookies-is-true).
 
 ## Mail client configuration
 
