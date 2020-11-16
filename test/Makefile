@@ -113,7 +113,7 @@ test-all: test-up_0 test_1 test_2 test_3
 test_%: test-up_% test-waitl_% test-logs_% test-service_% test-down_%
 	
 test-pull:
-	$(addprefix docker pull -q ,$(CURL_IMG); $(AUT_IMG); $(DB_IMG))
+	$(addprefix docker pull ,$(CURL_IMG); $(AUT_IMG); $(DB_IMG))
 
 test-up_0: test-up-net
 	#
