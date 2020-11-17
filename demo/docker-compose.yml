@@ -36,6 +36,7 @@ services:
       - ICALS_LISTEN=*:8443                     # enable TLS
       - DISABLED_FEATURES=${DISABLED_FEATURES-} # also enable IMAP and POP3
       - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
+      - LOG_LEVEL=${LOG_LEVEL-3}
     volumes:
       - app-conf:/etc/kopano
       - app-atch:/var/lib/kopano/attachments

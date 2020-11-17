@@ -14,6 +14,7 @@ if dc_is_unlocked; then
 	kopano_export_tls_cert
 	kopano_generate_tls_cert
 	kopano_export_tls_cert
-	kopano_apply_envvars
-	kopano_apply_phpenvvars
+	kopano_apply_envvars_core
+	kopano_apply_envvars_webapp
+	kopano_apply_envvars_zpush
 fi

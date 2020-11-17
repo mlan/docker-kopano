@@ -4,14 +4,6 @@
 
 Consider integrating support for kDAV which provides CalDAV and CardDAV.
 
-## Common configurations
-
-The following directives exist:
-
-```sh
-!include common.cfg
-```
-
 ## Revisit Persistent Data
 
 Consider consolidating directories which are candidates for persistence under `/srv`.

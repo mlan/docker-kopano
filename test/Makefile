@@ -65,6 +65,7 @@ APP_ENV  ?= $(NET_ENV) $(SQL_ENV) \
 -e POP3_LISTEN=*:110 \
 -e ICAL_LISTEN=*:8080 \
 -e DISABLED_FEATURES= \
+-e LOGLEVEL=LOGLEVEL_DEBUG \
 -e SYSLOG_LEVEL=$(APP_SLOG) \
 -e LOG_LEVEL=$(APP_ALOG)
 APPS_ENV ?= $(APP_ENV) \
@@ -130,12 +131,12 @@ test-up_0: test-up-net
 	# run containers see if there are logs and stop.
 	#
 	#
-	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
+	docker run -d --name $(APP_NAME) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 	sleep $(TST_W8L1)
 	docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh'
 	docker rm -fv $(APP_NAME)
 	sleep $(TST_W8S1)
-	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
+	docker run -d --name $(APP_NAME) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
 	sleep $(TST_W8L1)
 	docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh'
 	docker rm -fv $(APP_NAME)

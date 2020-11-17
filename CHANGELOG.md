@@ -1,3 +1,7 @@
+# 1.2.4
+
+- [kopano](src/kopano) Now, use man pages and sample config files to find valid keys to match envvar.
+
 # 1.2.3
 
 - [kopano](src/kopano) Adding support for secure IMAPS, POP3S and ICALS.
