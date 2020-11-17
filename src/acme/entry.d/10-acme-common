@@ -44,11 +44,13 @@ acme_monitor_tls_cert() {
 acme_symlink_tls_cert() {
 	if ([ -r $DOCKER_ACME_SSL_H_CERT ] && [ -r $DOCKER_ACME_SSL_H_KEY ]); then
 		dc_log 5 "Setting up ACME TLS certificate for host $HOSTNAME"
+		mkdir -p $DOCKER_APPL_SSL_DIR
 		ln -sf $DOCKER_ACME_SSL_H_CERT $DOCKER_APPL_SSL_CERT
 		ln -sf $DOCKER_ACME_SSL_H_KEY $DOCKER_APPL_SSL_KEY
 	else
 		if ([ -r $DOCKER_ACME_SSL_D_CERT ] && [ -r $DOCKER_ACME_SSL_D_KEY ]); then
 			dc_log 5 "Setting up ACME TLS certificate for domain $DOMAIN"
+			mkdir -p $DOCKER_APPL_SSL_DIR
 			ln -sf $DOCKER_ACME_SSL_D_CERT $DOCKER_APPL_SSL_CERT
 			ln -sf $DOCKER_ACME_SSL_D_KEY $DOCKER_APPL_SSL_KEY
 		fi

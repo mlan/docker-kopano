@@ -121,6 +121,7 @@ kopano_generate_tls_cert() {
 	done
 	if ([ -z "$SSL_CERTIFICATE_FILE" ] && [ -n "$secure" ] && dc_is_installed openssl); then
 		dc_log 4 "$secure, but no certs given, so generating self-signed cert for host $HOSTNAME"
+		mkdir -p $DOCKER_APPL_SSL_DIR
 		dc_tls_setup_selfsigned_cert $DOCKER_APPL_SSL_CERT $DOCKER_APPL_SSL_KEY
 	fi
 }
