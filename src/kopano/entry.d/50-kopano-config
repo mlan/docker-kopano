@@ -17,4 +17,5 @@ if dc_is_unlocked; then
 	kopano_apply_envvars_core
 	kopano_apply_envvars_webapp
 	kopano_apply_envvars_zpush
+	kopano_apply_envvar_propmap
 fi

@@ -13,7 +13,7 @@ variables:
 
 test: all-test_quiet mta-test_smtp
 
-init: auth-init db-init mta-init app-init
+init: up auth-init db-init mta-init app-init
 
 ps:
 	docker-compose ps
@@ -24,7 +24,7 @@ up:
 down:
 	docker-compose down
 
-destroy:
+destroy: auth-gui-down
 	docker-compose down -v
 
 config:
@@ -73,7 +73,7 @@ wait_%:
 web:
 	firefox localhost:8008 &
 
-auth-init: auth-up wait_11 auth-mod_hash auth-mod_index auth-add_user
+auth-init: wait_11 auth-mod_hash auth-mod_index auth-add_schema auth-add_user
 
 auth-show_conf:
 	docker-compose exec auth ldap search -b cn=config "(cn=config)"
@@ -90,7 +90,7 @@ auth-show_cat1:
 	docker-compose exec auth slapcat -n1
 
 auth-add_user:
-	printf "dn: ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_USEROU)\n\ndn: ou=$(LDAP_GROUPOU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_GROUPOU)\n\ndn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: top\nobjectClass: inetOrgPerson\nobjectClass: $(LDAP_USEROBJ)\ncn: $(LDAP_TEST_USER)\nsn: $(LDAP_TEST_USER)\nuid: $(LDAP_TEST_USER)\nmail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)\nuidNumber: 1234\ngidNumber: 1234\nhomeDirectory: /home/$(LDAP_TEST_USER)\nuserPassword: $(LDAP_TEST_PASSWD)\n" \
+	printf "dn: ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_USEROU)\n\ndn: ou=$(LDAP_GROUPOU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_GROUPOU)\n\ndn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: top\nobjectClass: inetOrgPerson\nobjectClass: kopano-user\nobjectClass: $(LDAP_USEROBJ)\ncn: $(LDAP_TEST_USER)\nsn: $(LDAP_TEST_USER)\nuid: $(LDAP_TEST_USER)\nmail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)\nuidNumber: 1234\ngidNumber: 1234\nhomeDirectory: /home/$(LDAP_TEST_USER)\nuserPassword: $(LDAP_TEST_PASSWD)\ntelephoneNumber: 0123 123456789\ntitle: MCP\nkopanoEnabledFeatures: imap pop3\n" \
 	| docker-compose exec -T auth ldap modify
 
 auth-mod_index:
@@ -101,7 +101,21 @@ auth-mod_hash:
 	printf "dn: olcDatabase={-1}frontend,cn=config\nchangetype: modify\nadd: olcPasswordHash\nolcPasswordHash: {CRYPT}\n\ndn: cn=config\nchangetype: modify\nadd: olcPasswordCryptSaltFormat\nolcPasswordCryptSaltFormat: \$$6\$$%%.16s\n" \
 	| docker-compose exec -T auth ldap modify
 
-mta-init: mta-up
+auth-add_schema:
+	docker-compose exec app zcat /usr/share/doc/kopano/kopano.ldif.gz \
+	| docker-compose exec -T auth ldapadd -H ldapi://%2Fvar%2Frun%2Fopenldap%2Fldapi/ -Y EXTERNAL
+
+auth-gui-up:
+	docker run -d --rm --name auth-gui --network demo_backend \
+	-p 127.0.0.1:8001:80 -e PHPLDAPADMIN_LDAP_HOSTS=auth \
+	-e PHPLDAPADMIN_HTTPS=false osixia/phpldapadmin || true
+	sleep 2
+	firefox localhost:8001 &
+
+auth-gui-down:
+	docker stop auth-gui || true
+
+mta-init:
 
 mta-bayes:
 	docker-compose exec mta sh -c 'rm -f bayesian.database.gz && wget http://artinvoice.hu/spams/bayesian.database.gz && gunzip bayesian.database.gz && sa-learn --restore bayesian.database && chown -R amavis: /var/amavis/.spamassassin && rm -rf bayesian.database'
@@ -177,12 +191,12 @@ mta-test_rimap:
 mta-test_ldap: mta-debugtools
 	docker-compose exec mta ldapsearch -H ldap://auth:389 -xLLL -s base namingContexts
 
-db-init: db-up
+db-init:
 
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
 
-app-init: app-up wait_12 app-public_store
+app-init: wait_12 app-public_store
 
 app-debugtools:
 	docker-compose exec app apt-get update
@@ -230,7 +244,7 @@ app-test_tls: app-hostaddr
 	docker run --rm -it --network demo_backend drwetter/testssl.sh app:993 || true
 
 app-show_user1:
-	docker-compose exec app kopano-admin -l
+	docker-compose exec app kopano-admin --details $(LDAP_TEST_USER)
 
 app-show_user2: app-debugtools
 	docker-compose exec app ldapsearch -H ldap://auth:389 -xLLL -b $(LDAP_BASE) '*'

@@ -260,27 +260,25 @@ When the `ATTACHMENT_STORAGE` option is `ATTACHMENT_STORAGE=files`, this option 
 
 When creating the SQL container you can use environment variables to initiate it. For example, `MYSQL_ROOT_PASSWORD=topsecret`, `MYSQL_DATABASE=kopano`, `MYSQL_USER=kopano` and `MYSQL_PASSWORD=verysecret`.
 
-## User authentication `USER_PLUGIN`
+## User management `USER_PLUGIN`
 
-Kopano supports three different ways to manage user authentication. Use the `USER_PLUGIN` environment variable to select the source of the user base. Possible values are: `db` (default), `ldap` and `unix`.
+Kopano supports three different plugins for user management. Use the `USER_PLUGIN` environment variable to select the source of the user base. Possible values are: `db` (default), `ldap` and `unix`.
 
- `db`: Retrieve the users from the Kopano database. Use the kopano-admin tool to create users and groups. There are no additional settings for this plug-in.
+`db`: Retrieve the users from the Kopano database. Use the `kopano-admin` tool to create users and groups. There are no additional settings for this plug-in.
 
-`ldap`: Retrieve the users and groups information from an LDAP server. All additional LDAP settings are needed see below
+`ldap`: Retrieve the users and groups information from an LDAP directory server. Additional LDAP settings are needed, see below.
 
 `unix`: Retrieve the users and groups information from the Linux password files. This option is probably not interesting here.
 
-### LDAP authentication
+### Accessing an LDAP directory server
 
-An LDAP server with user accounts configured to be used with Kopano is needed, but how to set one up is out of our scope here, instead see: [Kopano Knowledge Base/Install and optimize OpenLDAP for use with Kopano Groupware Core](https://kb.kopano.io/display/WIKI/Install+and+optimize+OpenLDAP+for+use+with+Kopano+Groupware+Core).
+The `USER_PLUGIN=ldap` retrieves user information from an LDAP directory server. A brief description of how that is achieved is described in [Setup an LDAP directory server](#setup-an-ldap-directory-server). Once the LDAP directory server is up and running, the `mlan/kopano` container can be configured to use it using environment variables.
 
-Once the LDAP server is up and running, the `mlan/kopano` container can be configured to use it using environment variables. In addition to the variables discussed below also set `USER_PLUGIN=ldap`.
-
-#### `LDAP_URI`
+#### Host address `LDAP_URI`
 
 Specifies the URI of one or more LDAP server(s) to use, without any DN portion, such as `ldap://server:389/`, `ldaps://server:636/` or `ldapi:///`. Defaults: `LDAP_URI=ldap://localhost:389/`.
 
-The historic directives `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL` are no longer supported (8.7.85).
+Note that. the historic directives `LDAP_HOST`, `LDAP_PORT`, `LDAP_PROTOCOL` are no longer supported (8.7.85).
 
 #### `LDAP_SEARCH_BASE`
 
@@ -298,7 +296,11 @@ This variable determines what defines a valid Kopano group. Default: `LDAP_GROUP
 
 Adds an extra filter to the user search. Default `LDAP_USER_SEARCH_FILTER=`
 
-Hint: Use the `kopanoAccount` attribute in the filter to differentiate between non-kopano and kopano users.
+Hint: Use the `kopanoAccount` attribute in the filter to differentiate between non-Kopano and Kopano users.
+
+### Kopano LDAP attributes `LDAP_PROPMAP`
+
+The Kopano services needs to know which of the users LDAP attributes, like addresses, phone numbers and company information, to use. This information is defined in the `propmap` file, which is included in the Kopano installation files here `/usr/share/kopano/ldap.propmap.cfg`. When using `USER_PLUGIN=ldap` this LDAP `propmap` file is used by the Kopano services by setting `LDAP_PROPMAP=` to an empty string. Optionally you can use another file, for example`LDAP_PROPMAP=/etc/kopano/ldap.propmap.cfg`. If no file can be found there the installed one will be copied there.
 
 ## Enabling IMAP, POP3 and ICAL
 
@@ -444,6 +446,50 @@ Prior to Kopano WebApp version 5.0.0 the parameter was `define("INSECURE_COOKIES
 # Knowledge base
 
 Here some topics relevant for arranging a mail server are presented.
+
+## Setup an LDAP directory server
+
+A [Directory Server Agent (DSA)](https://en.wikipedia.org/wiki/Directory_System_Agent) is used to store, organize and present data in a key-value type format. Typically, directories are optimized for lookups, searches, and read operations over write operations, so they function extremely well for data that is referenced often but changes infrequently.
+
+The [Lightweight Directory Access Protocol (LDAP)](https://en.wikipedia.org/wiki/Lightweight_Directory_Access_Protocol), is an open protocol used to store and retrieve data from a hierarchical directory structure. Commonly used to store information about an organization and its assets and users.
+
+[OpenLDAP](https://www.openldap.org/) is a cross platform LDAP based directory service. [Active Directory (AD)](https://en.wikipedia.org/wiki/Active_Directory) is a [directory service](https://en.wikipedia.org/wiki/Directory_service) developed by [Microsoft](https://en.wikipedia.org/wiki/Microsoft) for [Windows domain](https://en.wikipedia.org/wiki/Windows_domain) networks which also uses LDAP.
+
+There are many dockerized OpenLDAP server to choose from. One such example is [mlan/openldap](https://github.com/mlan/docker-openldap).
+
+### LDAP user entry
+
+The data itself in an LDAP system is mainly stored in elements called attributes. Attributes are basically key-value pairs. Unlike in some other systems, the keys have predefined names which are dictated by the objectClasses selected for an entry. An entry is basically a collection of attributes under a name used to describe something; a user for example.
+
+```yaml
+dn: uid=demo,ou=users,dc=example,dc=com
+objectclass: inetOrgPerson
+uid: demo
+```
+
+### Kopano LDAP schema
+
+The Kopano LDAP schema defines additional objectClasses and attributes. These allow the Kopano services, access for example, to controlled on per-user basis. More information on available attributes can be find here, [Fine-tuning user configuration](https://documentation.kopano.io/kopanocore_administrator_manual/configure_kc_components.html?highlight=propmap#fine-tuning-user-configuration).
+
+```shell
+dn: uid=demo,ou=users,dc=example,dc=com
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+objectClass: posixAccount
+cn: demo
+sn: demo
+uid: demo
+mail: demo@example.com
+uidNumber: 1234
+gidNumber: 1234
+homeDirectory: /home/demo
+telephoneNumber: 0123 123456789
+title: MCP
+kopanoEnabledFeatures: imap pop3
+```
+
+The schema needs to be added to the directory server. The Kopano installation files include the LDAP schema and can be found here `/usr/share/doc/kopano/kopano.ldif.gz`. For more details, see: [Kopano Knowledge Base/Install and optimize OpenLDAP for use with Kopano Groupware Core](https://kb.kopano.io/display/WIKI/Install+and+optimize+OpenLDAP+for+use+with+Kopano+Groupware+Core).
 
 ## Kopano WebApp HTTP access
 

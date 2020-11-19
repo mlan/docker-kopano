@@ -1,6 +1,7 @@
 # 1.2.4
 
 - [kopano](src/kopano) Now, use man pages and sample config files to find valid keys to match envvar.
+- [kopano](src/kopano) Load Kopano LDAP attributes using `LDAP_PROPMAP=`.
 
 # 1.2.3
 
