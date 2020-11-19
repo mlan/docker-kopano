@@ -84,6 +84,7 @@ services:
       - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
       - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${LDAP_USEROBJ-posixAccount}
       - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${LDAP_GROUPOBJ-posixGroup}
+      - LDAP_PROPMAP=
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
@@ -272,7 +273,7 @@ Kopano supports three different plugins for user management. Use the `USER_PLUGI
 
 ### Accessing an LDAP directory server
 
-The `USER_PLUGIN=ldap` retrieves user information from an LDAP directory server. A brief description of how that is achieved is described in [Setup an LDAP directory server](#setup-an-ldap-directory-server). Once the LDAP directory server is up and running, the `mlan/kopano` container can be configured to use it using environment variables.
+The `USER_PLUGIN=ldap` retrieves user information from an LDAP directory server. A brief description of how that is achieved is described in [Setup an LDAP directory server](#setup-an-ldap-directory-server). Once the LDAP directory server is up and running, the `mlan/kopano` container can be configured to use it using environment variables.
 
 #### Host address `LDAP_URI`
 
@@ -304,7 +305,7 @@ The Kopano services needs to know which of the users LDAP attributes, like addre
 
 ## Enabling IMAP, POP3 and ICAL
 
-By default the [IMAP](https://www.atmail.com/blog/imap-commands/) and POP3 services are disabled for all users. Set the environment variable `DISABLED_FEATURES=` to an empty string to enable both IMAP and POP3 for all users.
+By default the [IMAP](https://www.atmail.com/blog/imap-commands/) and POP3 services are disabled for all users. Set the environment variable `DISABLED_FEATURES=` to an empty string to enable both IMAP and POP3 for all users. You can override this setting for each user independently by enabling or disabling features in the LDAP directory server see, [Setup an LDAP directory server](#setup-an-ldap-directory-server).
 
 #### `DISABLED_FEATURES`
 
@@ -486,7 +487,8 @@ gidNumber: 1234
 homeDirectory: /home/demo
 telephoneNumber: 0123 123456789
 title: MCP
-kopanoEnabledFeatures: imap pop3
+kopanoEnabledFeatures: imap
+kopanoEnabledFeatures: pop3
 ```
 
 The schema needs to be added to the directory server. The Kopano installation files include the LDAP schema and can be found here `/usr/share/doc/kopano/kopano.ldif.gz`. For more details, see: [Kopano Knowledge Base/Install and optimize OpenLDAP for use with Kopano Groupware Core](https://kb.kopano.io/display/WIKI/Install+and+optimize+OpenLDAP+for+use+with+Kopano+Groupware+Core).
