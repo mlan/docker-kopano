@@ -25,6 +25,7 @@ services:
       - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
       - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${LDAP_USEROBJ-posixAccount}
       - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${LDAP_GROUPOBJ-posixGroup}
+      - LDAP_GROUPMEMBERS_ATTRIBUTE_TYPE=dn
       - LDAP_PROPMAP=
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}

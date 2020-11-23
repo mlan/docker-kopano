@@ -86,7 +86,7 @@ AUT_FQDN ?= $(AUT_NAME).$(MAIL_DOM)
 AUT_VOL  ?=
 AUT_ENV  ?= $(NET_ENV) \
 --name $(AUT_NAME) \
---hostname $(AUT_FQDN) \
+--hostname $(AUT_FQDN)
 
 CURL_OPT ?= -s -v
 CURL_IMG ?= curlimages/curl

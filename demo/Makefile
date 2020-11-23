@@ -73,14 +73,83 @@ wait_%:
 web:
 	firefox localhost:8008 &
 
-auth-init: wait_11 auth-mod_hash auth-mod_index auth-add_schema auth-add_user
+auth-init: wait_11 auth-mod_conf auth-add_schema auth-add_data
+
+define LDIF_MOD_CONF
+dn: olcDatabase={-1}frontend,cn=config
+changetype: modify
+add: olcPasswordHash
+olcPasswordHash: {CRYPT}
+
+dn: cn=config
+changetype: modify
+add: olcPasswordCryptSaltFormat
+olcPasswordCryptSaltFormat: $$6$$%.16s
+
+dn: olcDatabase={1}mdb,cn=config
+changetype: modify
+add: olcDbIndex
+olcDbIndex: cn,ou,uid,mail eq
+endef
+export LDIF_MOD_CONF
+
+define LDIF_ADD_DATA
+dn: ou=$(LDAP_USEROU),$(LDAP_BASE)
+changetype: add
+ou: $(LDAP_USEROU)
+objectClass: top
+objectClass: organizationalUnit
+
+dn: ou=$(LDAP_GROUPOU),$(LDAP_BASE)
+changetype: add
+ou: $(LDAP_GROUPOU)
+objectClass: top
+objectClass: organizationalUnit
+
+dn: cn=$(LDAP_TEST_GROUP),ou=$(LDAP_GROUPOU),$(LDAP_BASE)
+changetype: add
+cn: $(LDAP_TEST_GROUP)
+objectClass: top
+objectClass: groupOfNames
+objectClass: kopano-group
+member: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)
+mail: $(LDAP_TEST_GROUP)@$(MAIL_DOMAIN)
+
+dn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)
+changetype: add
+cn: $(LDAP_TEST_USER)
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+sn: $(LDAP_TEST_USER)
+uid: $(LDAP_TEST_USER)
+mail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)
+userPassword: $(LDAP_TEST_PASSWD)
+telephoneNumber: 0123 123456789
+title: MCP
+kopanoAccount: 1
+kopanoAdmin: 1
+kopanoEnabledFeatures: imap
+kopanoEnabledFeatures: pop3
+endef
+export LDIF_ADD_DATA
+
+auth-mod_conf:
+	echo "$$LDIF_MOD_CONF" | docker-compose exec -T auth ldap modify
+
+auth-add_data:
+	echo "$$LDIF_ADD_DATA" | docker-compose exec -T auth ldap modify
+
+auth-add_schema:
+	docker-compose exec app zcat /usr/share/doc/kopano/kopano.ldif.gz \
+	| docker-compose exec -T auth ldapadd -H ldapi://%2Fvar%2Frun%2Fopenldap%2Fldapi/ -Y EXTERNAL
 
 auth-show_conf:
 	docker-compose exec auth ldap search -b cn=config "(cn=config)"
 	docker-compose exec auth ldap search -b cn=config olcDatabase={-1}frontend
 	docker-compose exec auth ldap search -b cn=config olcDatabase={1}mdb
 
-auth-show_user:
+auth-show_data:
 	docker-compose exec auth ldap search -b "$(LDAP_BASE)"
 
 auth-show_cat0:
@@ -88,22 +157,6 @@ auth-show_cat0:
 
 auth-show_cat1:
 	docker-compose exec auth slapcat -n1
-
-auth-add_user:
-	printf "dn: ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_USEROU)\n\ndn: ou=$(LDAP_GROUPOU),$(LDAP_BASE)\nchangetype: add\nobjectClass: organizationalUnit\nobjectClass: top\nou: $(LDAP_GROUPOU)\n\ndn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)\nchangetype: add\nobjectClass: top\nobjectClass: inetOrgPerson\nobjectClass: kopano-user\nobjectClass: $(LDAP_USEROBJ)\ncn: $(LDAP_TEST_USER)\nsn: $(LDAP_TEST_USER)\nuid: $(LDAP_TEST_USER)\nmail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)\nuidNumber: 1234\ngidNumber: 1234\nhomeDirectory: /home/$(LDAP_TEST_USER)\nuserPassword: $(LDAP_TEST_PASSWD)\ntelephoneNumber: 0123 123456789\ntitle: MCP\nkopanoEnabledFeatures: imap\nkopanoEnabledFeatures: pop3\n" \
-	| docker-compose exec -T auth ldap modify
-
-auth-mod_index:
-	printf "dn: olcDatabase={1}mdb,cn=config\nchangetype: modify\nadd: olcDbIndex\nolcDbIndex: cn,ou,uid,mail eq\n" \
-	| docker-compose exec -T auth ldap modify
-
-auth-mod_hash:
-	printf "dn: olcDatabase={-1}frontend,cn=config\nchangetype: modify\nadd: olcPasswordHash\nolcPasswordHash: {CRYPT}\n\ndn: cn=config\nchangetype: modify\nadd: olcPasswordCryptSaltFormat\nolcPasswordCryptSaltFormat: \$$6\$$%%.16s\n" \
-	| docker-compose exec -T auth ldap modify
-
-auth-add_schema:
-	docker-compose exec app zcat /usr/share/doc/kopano/kopano.ldif.gz \
-	| docker-compose exec -T auth ldapadd -H ldapi://%2Fvar%2Frun%2Fopenldap%2Fldapi/ -Y EXTERNAL
 
 auth-gui-up:
 	docker run -d --rm --name auth-gui --network demo_backend \
