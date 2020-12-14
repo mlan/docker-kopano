@@ -300,6 +300,10 @@ Adds an extra filter to the user search. Default `LDAP_USER_SEARCH_FILTER=`
 
 Hint: Use the `kopanoAccount` attribute in the filter to differentiate between non-Kopano and Kopano users.
 
+#### `LDAP_BIND_USER`, `LDAP_BIND_PASSWD`
+
+The defaults for these environment variables are empty. If you cannot bind anonymously, do it with this distinguished name and password. Example: LDAP_BIND_USER=uid=admin,dc=example,dc=com, LDAP_BIND_PASSWD=secret.
+
 ### Kopano LDAP attributes `LDAP_PROPMAP`
 
 The Kopano services needs to know which of the users LDAP attributes, like addresses, phone numbers and company information, to use. This information is defined in the `propmap` file, which is included in the Kopano installation files here `/usr/share/kopano/ldap.propmap.cfg`. When using `USER_PLUGIN=ldap` this LDAP `propmap` file is used by the Kopano services by setting `LDAP_PROPMAP=` to an empty string. Optionally you can use another file, for example`LDAP_PROPMAP=/etc/kopano/ldap.propmap.cfg`. If no file can be found there the installed one will be copied there.

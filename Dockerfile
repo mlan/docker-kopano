@@ -98,6 +98,10 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	https://download.kopano.io/community ${DIST} ${REL} ${ARCH}) \
 	&& echo "$webaddr<->${DIST} ${REL} ${ARCH}<-" \
 	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
+	&& webaddr=$(kopano-webaddr.sh archiver \
+	https://download.kopano.io/community ${DIST} ${REL} ${ARCH}) \
+	&& echo "$webaddr<->${DIST} ${REL} ${ARCH}<-" \
+	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
 	&& apt-get update \
 	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
 	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
