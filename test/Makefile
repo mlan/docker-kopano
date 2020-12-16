@@ -242,7 +242,6 @@ test-lmtp_%:
 
 test-cfg_%:
 	$(eval cfg_s := $(shell [ $* -ge 2 ] && echo s))
-	$(eval cfg_s := $(shell [ $* -ge 2 ] && echo s))
 
 # Note: cannot use prereq also in a proper target since it will change the
 # prereq order, eg. avoid the "3" in test-imaps: test-imap_3

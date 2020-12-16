@@ -1,3 +1,10 @@
+# 1.2.5
+
+- [docker](Dockerfile) Install the smime webapp plugin providing [S/MIME](https://kopano.com/blog/s-mime-plugin-description/).
+- [docker](Dockerfile) Install the mdm webapp plugin providing [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual/).
+- [demo](demo) Add [S/MIME](https://kopano.com/blog/s-mime-plugin-description/) cert generation.
+- [kopano](src/kopano/entry.d/10-kopano-common) Fix bug in `kopano_apply_envvars_php()`.
+
 # 1.2.4
 
 - [kopano](src/kopano) Now, use man pages and sample config files to find valid keys to match envvar.

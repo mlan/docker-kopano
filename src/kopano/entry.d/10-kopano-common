@@ -21,6 +21,8 @@ DOCKER_LDAP_PMAP_FILE=${DOCKER_LDAP_PMAP_FILE-/usr/share/kopano/ldap.propmap.cfg
 sqlstate_cfg_file=$DOCKER_CONF_DIR2/backend/sqlstatemachine/config.php
 zpush_cfg_file=$DOCKER_CONF_DIR2/config.php
 webapp_cfg_file=$DOCKER_CONF_DIR1/webapp/config.php
+webapp_mdm_cfg_file=$DOCKER_CONF_DIR1/webapp/config-mdm.php
+webapp_smime_cfg_file=$DOCKER_CONF_DIR1/webapp/config-smime.php
 
 #
 # Apply environment variables to configuration files.
@@ -37,6 +39,8 @@ kopano_apply_envvars_core() {
 
 kopano_apply_envvars_webapp() {
 	kopano_apply_envvars_php $webapp_cfg_file
+	kopano_apply_envvars_php $webapp_mdm_cfg_file
+	kopano_apply_envvars_php $webapp_smime_cfg_file
 }
 
 kopano_apply_envvars_zpush() {
@@ -50,7 +54,7 @@ kopano_apply_envvars_cfg() {
 	if [ -f $man_file ]; then
 		local env_vars="$(kopano_get_envvars_man $man_file)"
 		if [ -e $cfg_file ]; then
-			mv -f $cfg_file $cfg_file.orig
+			mv -f $cfg_file $cfg_file.bak
 		fi
 		for env_var in $env_vars; do
 			kopano_set_envvars_cfg $cfg_file $env_var
@@ -64,11 +68,12 @@ kopano_apply_envvars_php() {
 	local cfg_file=$1
 	if [ -e $cfg_file ]; then
 		local env_vars="$(kopano_get_envvars_php $cfg_file)"
-		cp -f $cfg_file $cfg_file.orig
 		for env_var in $env_vars; do
 			if [ -n "${!env_var}" ]; then
+				[ -z "${changed+x}" ] && cp -f $cfg_file $cfg_file.bak
 				dc_log 5 "Setting ${env_var} = ${!env_var} in $cfg_file"
-				sed -ri "s/(\s*define).+${env_var}.+/\1\(\x27${env_var}\x27, \x27${!env_var}\x27\);/g" $cfg_file
+				sed -ri "s/(\s*define[('\"]+${env_var}['\",]+).+/\1 ${!env_var});/Ig" $cfg_file
+				local changed
 			fi
 		done
 	fi
@@ -93,7 +98,7 @@ kopano_set_envvars_cfg() {
 kopano_gen_filename_man() { echo $DOCKER_MAN5_DIR/kopano-$1.cfg.5.gz ;}
 kopano_gen_filename_cfg() { echo $DOCKER_CONF_DIR1/$1.cfg ;}
 kopano_get_envvars_man() { zcat $1 | sed -r "/^\.SS/!d;{s/^\.SS (.*)/\U\1/g;s/,//g}" | sort -u ;}
-kopano_get_envvars_php() { sed -nr "/define\(/s/.*define\(['\"](.*)['\"], .*/\1/p" $1 | sort -u ;}
+kopano_get_envvars_php() { sed -nr "/define\(/Is/.*define\(['\"](.*)['\"], .*/\1/Ip" $1 | sort -u ;}
 
 #
 # Update SSL_CERTIFICATE_FILE and SSL_PRIVATE_KEY_FILE.

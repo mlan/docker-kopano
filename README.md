@@ -112,6 +112,7 @@ services:
       - backend
     ports:
       - "127.0.0.1:25:25"      # SMTP
+      - "127.0.0.1:465:465"    # SMTPS authentication required
     depends_on:
       - auth
     environment: # Virgin config, ignored on restarts unless FORCE_CONFIG given.
@@ -391,7 +392,7 @@ Separately, `LOG_LEVEL` controls the logging level of the Kopano services. `LOG_
 | ---- | ---- | ---- | ------- | ------ | ---- | ----- |
 | 0    | 1    | 2    | **3**   | 4      | 5    | 6     |
 
-## Custom themes
+## WebApp custom themes
 
 You can easily customize the Kopano WebApp see [New! JSON themes in Kopano WebApp](https://kopano.com/blog/new-json-themes-in-kopano-webapp/). Once you have the files you can install them in your docker container using the receipt below, where we assume that the container name is `mail-app` and that the directory `mytheme` contains the `theme.json` and the other file defining the theme.
 
@@ -402,6 +403,22 @@ docker exec -it mail-app run dc_replace /etc/kopano/webapp/config.php 'define("T
 ```
 
 Please note that it is not possible to rename the directory `/etc/kopano/theme/Custom` within the container without further modifications.
+
+## WebApp plugins
+
+### S/MIME
+
+[S/MIME](https://en.wikipedia.org/wiki/S/MIME) provides [email encryption](https://en.wikipedia.org/wiki/Email_encryption) guaranteeing the confidentiality and non-repudiation of email. The [S/MIME](https://documentation.kopano.io/webapp_smime_manual/) WebApp plugin is pre-installed.
+
+Using the [demo](#demo) you can easily create a S/MIME certificate you can try out using WebApp.
+
+```sh
+make app-create_smime
+```
+
+### Mobile device management
+
+The [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual/) WebApp plugin comes pre-installed. With it you can resync, remove, refresh and even wipe your devices, connected via [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync).
 
 ## Mail transfer agent interaction
 

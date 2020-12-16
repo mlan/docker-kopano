@@ -17,17 +17,6 @@ Consider to also consolidating it under /srv to simplify making it persistent?
 
 Integrate [webapp-passwd](https://github.com/silentsakky/zarafa-webapp-passwd)?
 
-## S/MIME
-
-Install and configure [S/MIME](https://kopano.com/blog/s-mime-plugin-description/)?
-
-[S/MIME manual](https://documentation.kopano.io/webapp_smime_manual/).
-
-## MDM
-
-Install and configure [MDM](https://documentation.kopano.io/webapp_mdm_manual/)?
-With the MDM plugin you can resync, remove, refresh and even wipe your device.
-
 ## Improve Health Check?
 
 Verify the user anonymously.

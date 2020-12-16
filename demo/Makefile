@@ -24,7 +24,7 @@ up:
 down:
 	docker-compose down
 
-destroy: auth-gui-down
+destroy: auth-gui-down all-destroy_smime
 	docker-compose down -v
 
 config:
@@ -249,7 +249,7 @@ db-init:
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
 
-app-init: wait_12 app-public_store
+app-init: #wait_21 app-public_store
 
 app-debugtools:
 	docker-compose exec app apt-get update
@@ -311,8 +311,44 @@ app-create_store:
 app-public_store:
 	docker-compose exec app kopano-storeadm -h default: -P
 
+app-create_smime: all-create_smime ssl/ca.crt
+	docker cp ssl/ca.crt $$(docker-compose ps -q app):/usr/local/share/ca-certificates/$(MAIL_DOMAIN)_CA.crt
+	docker-compose exec app update-ca-certificates
+
 all-test_quiet:
 	$(eval curl_dbg := -s -S )
 
 all-test_muted:
 	$(eval curl_dbg := -s -S >/dev/null || true)
+
+all-create_smime: ssl/$(LDAP_TEST_USER).smime.p12
+
+all-destroy_smime:
+	rm -rf ssl
+
+#.PRECIOUS: %.key %.crt %.smime.crt
+
+%.p12: %.crt
+	openssl pkcs12 -export -in $< -inkey $*.key -out $@ \
+	-passout pass:$(LDAP_TEST_PASSWD)
+
+%.csr: %.key
+	openssl req -new -key $< -out $@ \
+	-subj "/O=$(MAIL_DOMAIN)/CN=$(LDAP_TEST_USER)/emailAddress=$(LDAP_TEST_USER)@$(MAIL_DOMAIN)"
+
+%.smime.crt: %.smime.csr ssl/ca.crt
+	openssl x509 -req -in $< -CA $(@D)/ca.crt -CAkey $(@D)/ca.key -out $@ \
+	-setalias "Self Signed SMIME" -addtrust emailProtection \
+	-addreject clientAuth -addreject serverAuth -trustout \
+	-CAcreateserial
+
+%.crt: %.key
+	openssl req -x509 -batch -key $< -out $@ \
+	-subj "/O=$(MAIL_DOMAIN)"
+
+%.key: ssl
+	openssl genrsa -out $@
+	chmod a+r $@
+
+ssl:
+	mkdir -p $@

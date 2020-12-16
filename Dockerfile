@@ -164,6 +164,14 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	https://download.kopano.io/community ${DIST} ${REL} all) \
 	&& echo "$webaddr<->${DIST} ${REL} all<-" \
 	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
+	&& webaddr=$(kopano-webaddr.sh mdm \
+	https://download.kopano.io/community ${DIST} ${REL} all) \
+	&& echo "$webaddr<->${DIST} ${REL} all<-" \
+	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
+	&& webaddr=$(kopano-webaddr.sh smime \
+	https://download.kopano.io/community ${DIST} ${REL} ${ARCH}) \
+	&& echo "$webaddr<->${DIST} ${REL} all<-" \
+	&& curl $webaddr | tar -xzC $DOCKER_BUILD_DEB_DIR \
 	&& apt-get update \
 	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO WEBAPP INSTALL PASS: $i\033[0m" \
 	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \

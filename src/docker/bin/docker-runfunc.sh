@@ -2,13 +2,14 @@
 #
 # docker-runfunc.sh
 #
-# Allow functions to be accessed from the commandline.
+# Allow functions to be accessed from the command line.
 #
 
 #
 # Source common functions.
 #
 . docker-common.sh
+. docker-config.sh
 
 #
 # dr_docker_call_func "$@"
