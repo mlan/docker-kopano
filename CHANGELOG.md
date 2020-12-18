@@ -8,7 +8,7 @@
 - [kopano](src/kopano/entry.d/10-kopano-common) Allow module based parameter names.
 - [docker](src/docker/bin/docker-config.sh) Add provision to set up crontab using envvars.
 - [docker](README.md) Updated documentation.
-
+- [kopano](src/kopano) `MIGRATE_CONFIG=2` make sure WebApp plugins have configuration files in place.
 # 1.2.4
 
 - [kopano](src/kopano) Now, use man pages and sample config files to find valid keys to match envvar.

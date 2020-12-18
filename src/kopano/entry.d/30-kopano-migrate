@@ -11,6 +11,13 @@ kopano_apply_migrate_fixes() {
 		for fix in ${MIGRATE_CONFIG/all/1}; do # list all fixes here
 		case $fix in
 		1) dc_replace /etc/kopano/webapp/config.php 'define("INSECURE_COOKIES", true);' 'define("SECURE_COOKIES", false);' ;;
+		2)
+			for plugin in smime mdm; do
+				local cfg_file=/etc/kopano/webapp/config-$plugin.php
+				local src_file=/usr/share/kopano-webapp/plugins/$plugin/config.php
+				[ ! -f "$cfg_file" ] && cp "$src_file" "$cfg_file"
+			done
+			;;
 		*) fix= ;;
 		esac
 		if [ -n "$fix" ]; then

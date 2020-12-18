@@ -230,7 +230,7 @@ make app-parms_server
 
 Some services use the same parameter names. When such a parameter is set using en environment variable all configuration files of the related services will be updated. This is not always desired. To address this you can prefix the parameter name with the name of the service you which to target by using the following syntax: `<service>_<parameter>`.
 
-For example when using the [Kopano-archiver](https://documentation.kopano.io/kopano_archiver_manual/) service, you often want to use one SQL database for the server and one separate one for the archiver. In this situation you can have two separate SQL database containers, one at `db-srv` and the other at `db-arc`. To set the [`MYSQL_HOST`](#mysql_host) parameter in the two relevant configuration files use `SERVER_MYSQL_HOST=db-srv` and `ARCHIVER_MYSQL_HOST=db-arc`. If for some reason you want both services to call the same container, instead use: `MYSQL_HOST=db`.
+For example when using the [Kopano-archiver](https://documentation.kopano.io/kopano_archiver_manual/) service, you often want to use one SQL database for the server and one separate one for the archiver. In this situation you can have two separate SQL database containers, one at `db-srv` and the other at `db-arc`. To set the [`MYSQL_HOST`](#mysql_host) parameter in the two relevant configuration files use `SERVER_MYSQL_HOST=db-srv` and `ARCHIVER_MYSQL_HOST=db-arc`. If for some reason you want both services to call the same container, instead use: `MYSQL_HOST=db`.
 
 ## SQL database configuration
 
@@ -408,7 +408,7 @@ Separately, `LOG_LEVEL` controls the logging level of the Kopano services. `LOG_
 
 The [Kopano Archiver](https://documentation.kopano.io/kopano_archiver_manual/) provides a Hierarchical Storage Management (HSM) solution for Kopano. With the Kopano Archiver older messages will be automatically moved to slower and thus cheaper storage. The slow storage consists of one or more additional Kopano Archive servers which sole task it is to store archived messages.
 
-Typically the archiver needs its own SQL database. You can configure it using environment variables. When you do, pay attention to [overlapping parameter names](#overlapping-parameter-names). Also the archiver does not run as a daemon but instead you can set up [cron](#cron) jobs. For example, to run the archiver daily with weakly clean-up you can use; `CRONTAB_ENTRY1=0 1 * * * root kopano-archiver -A` and `CRONTAB_ENTRY2=0 3 * * 0 root kopano-archiver -C`.
+Typically the archiver needs its own SQL database. You can configure it using environment variables. When you do, pay attention to [overlapping parameter names](#overlapping-parameter-names). Also the archiver does not run as a daemon but instead you can set up [cron](#cron) jobs. For example, to run the archiver daily with weakly clean-up you can use; `CRONTAB_ENTRY1=0 1 * * * root kopano-archiver -A` and `CRONTAB_ENTRY2=0 3 * * 0 root kopano-archiver -C`.
 
 ## WebApp custom themes
 
@@ -484,6 +484,10 @@ Sometimes a new version of Kopano breaks compatibility with old configurations. 
 ### `MIGRATE_CONFIG=1` Rejected insecure request as configuration for SECURE_COOKIES is true
 
 Prior to Kopano WebApp version 5.0.0 the parameter was `define("INSECURE_COOKIES", true);` was used to allow HTTP access. Now [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) is used instead. This fix tries to update the configuration accordingly.
+
+### `MIGRATE_CONFIG=2` Make sure WebApp plugins have  configuration files in place
+
+The WebApp plugins S/MIME and MDM has recently been add to the `mlan/kopano` image. Old deployments might not have the related configuration files in place, preventing these plugins from running. This fix places default copies of configuration files in the configuration directory should they are missing.
 
 # Knowledge base
 
