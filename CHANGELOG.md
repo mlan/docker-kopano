@@ -7,6 +7,7 @@
 - [kopano](src/kopano/entry.d/10-kopano-common) Fix bug in `kopano_apply_envvars_php()`.
 - [kopano](src/kopano/entry.d/10-kopano-common) Allow module based parameter names.
 - [docker](src/docker/bin/docker-config.sh) Add provision to set up crontab using envvars.
+- [docker](README.md) Updated documentation.
 
 # 1.2.4
 

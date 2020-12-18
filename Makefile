@@ -34,7 +34,7 @@ ps:
 	docker ps -a
 
 prune:
-	docker image prune
+	docker image prune -f
 
 clean:
 	docker images | grep $(BLD_REPO) | awk '{print $$1 ":" $$2}' | uniq | xargs docker rmi

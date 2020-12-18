@@ -1,16 +1,5 @@
 # Road map
 
-## Overlapping parameters
-
-`MYSQL_HOST=db`
-`SERVER_MYSQL_HOST=db-srv`
-`ARCHIVER_MYSQL_HOST=db-arc`
-
-## Cron
-
-`CRONTAB_ENTRY1=0 1 * * * root kopano-archiver -A`
-`CRONTAB_ENTRY2=0 3 * * 0 root kopano-archiver -C`
-
 ## kDAV
 
 Consider integrating support for kDAV which provides CalDAV and CardDAV.

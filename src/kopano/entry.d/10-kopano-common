@@ -25,9 +25,24 @@ webapp_cfg_file=$DOCKER_CONF_DIR1/webapp/config.php
 webapp_mdm_cfg_file=$DOCKER_CONF_DIR1/webapp/config-mdm.php
 webapp_smime_cfg_file=$DOCKER_CONF_DIR1/webapp/config-smime.php
 
+
+#
+# CLI commands
+#
+list_parms() {
+	local services="$DOCKER_LDAP_SERVICES"
+	[ $# -ge 0 ] && services="$@"
+	for service in $services; do
+		[ $# -ne 1 ] && echo "# $service"
+		local man_file=$(kopano_gen_filename_man $service)
+		kopano_get_envvars_man $man_file
+		[ $# -ne 1 ] && echo
+	done
+}
+
 #
 # Apply environment variables to configuration files.
-# Uuse all valid keys (variables) for a service to see if there is a envvar with
+# Use all valid keys (variables) for a service to see if there is a envvar with
 # identical name, if so apply its value to the config file.
 # With kopano-core use man page files to lookup valid keys.
 # With kopano-webapp and z-push use installed config file to find valid keys.

@@ -18,7 +18,7 @@ dr_docker_call_func() {
 	export DOCKER_RUNFUNC="$@"
 	local cmd=$1
 	shift
-	dc_log 7 "CMD:$cmd ARG:$@"
+#	dc_log 7 "CMD:$cmd ARG:$@"
 	$cmd "$@"
 	exit 0
 }
@@ -29,7 +29,7 @@ dr_docker_call_func() {
 #
 dr_docker_run_parts() {
 	for file in $(find $1 -type f -name "$2" -executable 2>/dev/null|sort); do
-		dc_log 7 run_parts: executing $file
+#		dc_log 7 run_parts: executing $file
 		. $file
 	done
 }

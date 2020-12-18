@@ -21,6 +21,7 @@ Hopefully this repository can be retired once the Kopano community make official
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
 - Built in utility script [run](src/docker/bin/run) helping configuring Kopano components, WebApp and Z-Push
+- [crontab](https://en.wikipedia.org/wiki/Cron) support.
 - Health check
 - Hook for theming
 - Demo based on `docker-compose.yml` and `Makefile` files
@@ -214,17 +215,22 @@ The unlock file approach was selected since it is difficult to accidentally _cre
 
 In the rare event that want to modify the configuration of an existing container you can override the default behavior by setting `FORCE_CONFIG=overwrite` to a no-empty string.
 
-## Environment variables
+## Environment variables and service parameters
 
-When you create the `mlan/kopano` container, you can adjust the configuration of the Kopano server by passing one or more environment variables or on the docker run command line. Note that any pre-existing configuration files within the container will be left untouched.
+When you create the `mlan/kopano` container, you can adjust the configuration of the Kopano server by defining one or more environment variables. During container initiation environment variables are matched against all possible parameters for all Kopano services. When matched, configuration files are updated with the value of the matching environment variable.
 
-To see all available configuration variables you can run `man` within the container by for example using the [Makefile](demo/Makefile) described above:
+To see all available configuration parameters you can run `run list_parms <service>` within the container or when when using the [demo](#demo) described above just type:
 
 ```bash
-make mail-app-man_server
+make app-parms_dagent
+make app-parms_server
 ```
 
-If you do, you will notice that configuration variable names are all lower case, but they will be matched with all uppercase environment variables by the container `docker-entrypoint.sh` script.
+### Overlapping parameter names
+
+Some services use the same parameter names. When such a parameter is set using en environment variable all configuration files of the related services will be updated. This is not always desired. To address this you can prefix the parameter name with the name of the service you which to target by using the following syntax: `<service>_<parameter>`.
+
+For example when using the [Kopano-archiver](https://documentation.kopano.io/kopano_archiver_manual/) service, you often want to use one SQL database for the server and one separate one for the archiver. In this situation you can have two separate SQL database containers, one at `db-srv` and the other at `db-arc`. To set the [`MYSQL_HOST`](#mysql_host) parameter in the two relevant configuration files use `SERVER_MYSQL_HOST=db-srv` and `ARCHIVER_MYSQL_HOST=db-arc`. If for some reason you want both services to call the same container, instead use: `MYSQL_HOST=db`.
 
 ## SQL database configuration
 
@@ -396,6 +402,14 @@ Separately, `LOG_LEVEL` controls the logging level of the Kopano services. `LOG_
 | ---- | ---- | ---- | ------- | ------ | ---- | ----- |
 | 0    | 1    | 2    | **3**   | 4      | 5    | 6     |
 
+## Kopano add-ons
+
+### Kopano Archiver
+
+The [Kopano Archiver](https://documentation.kopano.io/kopano_archiver_manual/) provides a Hierarchical Storage Management (HSM) solution for Kopano. With the Kopano Archiver older messages will be automatically moved to slower and thus cheaper storage. The slow storage consists of one or more additional Kopano Archive servers which sole task it is to store archived messages.
+
+Typically the archiver needs its own SQL database. You can configure it using environment variables. When you do, pay attention to [overlapping parameter names](#overlapping-parameter-names). Also the archiver does not run as a daemon but instead you can set up [cron](#cron) jobs. For example, to run the archiver daily with weakly clean-up you can use; `CRONTAB_ENTRY1=0 1 * * * root kopano-archiver -A` and `CRONTAB_ENTRY2=0 3 * * 0 root kopano-archiver -C`.
+
 ## WebApp custom themes
 
 You can easily customize the Kopano WebApp see [New! JSON themes in Kopano WebApp](https://kopano.com/blog/new-json-themes-in-kopano-webapp/). Once you have the files you can install them in your docker container using the receipt below, where we assume that the container name is `mail-app` and that the directory `mytheme` contains the `theme.json` and the other file defining the theme.
@@ -423,6 +437,12 @@ make app-create_smime
 ### Mobile device management
 
 The [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual/) WebApp plugin comes pre-installed. With it you can resync, remove, refresh and even wipe your devices, connected via [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync).
+
+## Cron
+
+The `mlan/kopano` has a [cron](https://en.wikipedia.org/wiki/Cron) service activated. You can use environment variables to set up _crontab_ entries. Any environment variable name staring with `CRONTAB_ENTRY` will be use to add entries to cron.
+
+One trivial example is `CRONTAB_ENTRY_TEST=* * * * * root logger -t cron -p user.notice "SHELL=$$SHELL, PATH=$$PATH"`.
 
 ## Mail transfer agent interaction
 

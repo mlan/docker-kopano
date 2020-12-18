@@ -314,6 +314,9 @@ app-create_store:
 app-public_store:
 	docker-compose exec app kopano-storeadm -h default: -P
 
+$(addprefix app-parms_,archiver dagent gateway ical ldap search server spamd spooler):
+	docker-compose exec app run list_parms $(patsubst app-parms_%,%,$@)
+
 app-create_smime: all-create_smime ssl/ca.crt
 	docker cp ssl/ca.crt $$(docker-compose ps -q app):/usr/local/share/ca-certificates/$(MAIL_DOMAIN)_CA.crt
 	docker-compose exec app update-ca-certificates
