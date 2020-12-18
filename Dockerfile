@@ -13,6 +13,8 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_BIN_DIR=/usr/local/bin \
 	DOCKER_ENTRY_DIR=/etc/docker/entry.d \
 	DOCKER_EXIT_DIR=/etc/docker/exit.d \
+	DOCKER_CRONTAB_FILE=/etc/kopano/docker-crontab \
+	DOCKER_CRONTAB_DIR=/etc/cron.d \
 	DOCKER_CONF_DIR1=/etc/kopano \
 	DOCKER_CONF_DIR2=/usr/share/z-push \
 	DOCKER_APPL_LIB=/var/lib/kopano \
@@ -31,6 +33,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 COPY	src/*/bin $DOCKER_BIN_DIR/
 COPY	src/*/entry.d $DOCKER_ENTRY_DIR/
 COPY	src/*/exit.d $DOCKER_EXIT_DIR/
+COPY	src/*/config $DOCKER_CONF_DIR1/
 
 #
 # Install helpers. Set bash as default shell. Setup syslogs service.
@@ -46,7 +49,12 @@ RUN	apt-get update && apt-get install --yes --no-install-recommends \
 	gnupg \
 	jq \
 	inotify-tools \
-	&& docker-service.sh "syslogd -nO- -l$SYSLOG_LEVEL $SYSLOG_OPTIONS"
+	cron \
+	&& ln -s $DOCKER_CRONTAB_FILE $DOCKER_CRONTAB_DIR \
+	&& docker-service.sh \
+	"syslogd -nO- -l$SYSLOG_LEVEL $SYSLOG_OPTIONS" \
+	"cron -f"
+#	"cron -f -L 4"
 
 
 

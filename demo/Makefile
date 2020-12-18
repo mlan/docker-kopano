@@ -55,6 +55,9 @@ $(addsuffix -top,$(srv_list)):
 $(addsuffix -logs,$(srv_list)):
 	docker-compose logs $(patsubst %-logs,%,$@)
 
+$(addsuffix -pull,$(srv_list)):
+	docker-compose pull $(patsubst %-pull,%,$@)
+
 $(addsuffix -sh,$(srv_list)):
 	docker-compose exec $(patsubst %-sh,%,$@) sh -c 'exec $$(getent passwd root | sed "s/.*://g")'
 

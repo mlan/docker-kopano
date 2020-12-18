@@ -1,5 +1,16 @@
 # Road map
 
+## Overlapping parameters
+
+`MYSQL_HOST=db`
+`SERVER_MYSQL_HOST=db-srv`
+`ARCHIVER_MYSQL_HOST=db-arc`
+
+## Cron
+
+`CRONTAB_ENTRY1=0 1 * * * root kopano-archiver -A`
+`CRONTAB_ENTRY2=0 3 * * 0 root kopano-archiver -C`
+
 ## kDAV
 
 Consider integrating support for kDAV which provides CalDAV and CardDAV.
@@ -16,20 +27,3 @@ Consider to also consolidating it under /srv to simplify making it persistent?
 ## webapp-passwd
 
 Integrate [webapp-passwd](https://github.com/silentsakky/zarafa-webapp-passwd)?
-
-## Improve Health Check?
-
-Verify the user anonymously.
-```bash
-ldapsearch -h dockerhost -xLLL -b dc=example,dc=com '(kopanoAccount=1)'
-```
-
-Check if kopano can get the user from LDAP
-```bash
-kopano-admin -l
-```
-check that apache and mysql is running
-```bash
-apache2ctl status
-mysqlcheck -A
-```

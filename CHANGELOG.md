@@ -1,10 +1,12 @@
 # 1.2.5
 
-- [docker](Dockerfile) Install [kopano archiver](https://documentation.kopano.io/kopano_archiver_manual/) in target `core`.
+- [docker](Dockerfile) Install the [kopano archiver](https://documentation.kopano.io/kopano_archiver_manual/) in target `core`.
 - [docker](Dockerfile) Install the smime webapp plugin providing [S/MIME](https://kopano.com/blog/s-mime-plugin-description/).
 - [docker](Dockerfile) Install the mdm webapp plugin providing [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual/).
 - [demo](demo) Add [S/MIME](https://kopano.com/blog/s-mime-plugin-description/) cert generation.
 - [kopano](src/kopano/entry.d/10-kopano-common) Fix bug in `kopano_apply_envvars_php()`.
+- [kopano](src/kopano/entry.d/10-kopano-common) Allow module based parameter names.
+- [docker](src/docker/bin/docker-config.sh) Add provision to set up crontab using envvars.
 
 # 1.2.4
 

@@ -11,6 +11,8 @@ HOSTNAME=${HOSTNAME-$(hostname)}
 DOMAIN=${HOSTNAME#*.}
 TLS_KEYBITS=${TLS_KEYBITS-2048}
 TLS_CERTDAYS=${TLS_CERTDAYS-30}
+DOCKER_CRONTAB_FILE=${DOCKER_CRONTAB_FILE-/etc/crontab}
+DOCKER_CRONTAB_ENV=${DOCKER_CRONTAB_ENV-CRONTAB_ENTRY}
 
 #
 # general file manipulation commands, used both during build and run time
@@ -229,6 +231,18 @@ dc_prune_pidfiles() {
 		if [ -n "$(find -H $dir -type f -name "*.pid" -exec rm {} \; 2>/dev/null)" ]; then
 			dc_log 5 "Removed orphan pid files in $dir"
 		fi
+	done
+}
+
+#
+# Setup crontab entries
+#
+dc_crontab_entries() {
+	local entries="$(eval echo \${!$DOCKER_CRONTAB_ENV*})"
+	for entry in $entries; do
+		[ -z "${changed+x}" ] && local changed= && sed -i '/^#$/q' $DOCKER_CRONTAB_FILE
+		echo "${!entry}" >> $DOCKER_CRONTAB_FILE
+		dc_log 5 "Added entry ${!entry} in $DOCKER_CRONTAB_FILE"
 	done
 }
 

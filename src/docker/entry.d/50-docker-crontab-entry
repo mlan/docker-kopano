@@ -1,0 +1,15 @@
+#!/bin/sh
+#
+# 50-docker-crontab-entry
+#
+# Functions defined in:
+# docker-config.sh
+#
+#
+
+#
+# Add crontab entries if the config is unlocked.
+#
+if dc_is_unlocked; then
+	dc_crontab_entries
+fi

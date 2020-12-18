@@ -18,6 +18,7 @@ DOCKER_MAN5_DIR=${DOCKER_MAN5_DIR-/usr/share/man/man5/}
 DOCKER_APPL_SSL_CERT=${DOCKER_APPL_SSL_CERT-$DOCKER_APPL_SSL_DIR/cert.pem}
 DOCKER_APPL_SSL_KEY=${DOCKER_APPL_SSL_KEY-$DOCKER_APPL_SSL_DIR/priv_key.pem}
 DOCKER_LDAP_PMAP_FILE=${DOCKER_LDAP_PMAP_FILE-/usr/share/kopano/ldap.propmap.cfg}
+DOCKER_LDAP_SERVICES=${DOCKER_LDAP_SERVICES-archiver dagent gateway ical ldap search server spamd spooler}
 sqlstate_cfg_file=$DOCKER_CONF_DIR2/backend/sqlstatemachine/config.php
 zpush_cfg_file=$DOCKER_CONF_DIR2/config.php
 webapp_cfg_file=$DOCKER_CONF_DIR1/webapp/config.php
@@ -32,7 +33,7 @@ webapp_smime_cfg_file=$DOCKER_CONF_DIR1/webapp/config-smime.php
 # With kopano-webapp and z-push use installed config file to find valid keys.
 #
 kopano_apply_envvars_core() {
-	for service in dagent gateway ical ldap search server spamd spooler; do
+	for service in $DOCKER_LDAP_SERVICES; do
 		kopano_apply_envvars_cfg $service
 	done
 }
@@ -48,16 +49,20 @@ kopano_apply_envvars_zpush() {
 	kopano_apply_envvars_php $zpush_cfg_file
 }
 
+#
+# kopano_apply_envvars_cfg <service>
+#
 kopano_apply_envvars_cfg() {
-	local cfg_file=$(kopano_gen_filename_cfg $1)
-	local man_file=$(kopano_gen_filename_man $1)
+	local service=$1
+	local cfg_file=$(kopano_gen_filename_cfg $service)
+	local man_file=$(kopano_gen_filename_man $service)
 	if [ -f $man_file ]; then
 		local env_vars="$(kopano_get_envvars_man $man_file)"
 		if [ -e $cfg_file ]; then
 			mv -f $cfg_file $cfg_file.bak
 		fi
 		for env_var in $env_vars; do
-			kopano_set_envvars_cfg $cfg_file $env_var
+			kopano_set_envvars_cfg $service $env_var
 		done
 	else
 		dc_log 4 "Could not find $man_file"
@@ -70,25 +75,31 @@ kopano_apply_envvars_php() {
 		local env_vars="$(kopano_get_envvars_php $cfg_file)"
 		for env_var in $env_vars; do
 			if [ -n "${!env_var}" ]; then
-				[ -z "${changed+x}" ] && cp -f $cfg_file $cfg_file.bak
+				[ -z "${changed+x}" ] && local changed= && cp -f $cfg_file $cfg_file.bak
 				dc_log 5 "Setting ${env_var} = ${!env_var} in $cfg_file"
 				sed -ri "s/(\s*define[('\"]+${env_var}['\",]+).+/\1 ${!env_var});/Ig" $cfg_file
-				local changed
 			fi
 		done
 	fi
 }
 
 #
-# kopano_set_envvars_cfg </path/file.cfg> <envvar name> [explicit parameter name]
+# kopano_set_envvars_cfg <service> <envvar name> [explicit parameter name]
 #
 kopano_set_envvars_cfg() {
-	local cfg_file=$1
+	local service=$1
+	local cfg_file=$(kopano_gen_filename_cfg $service)
 	local env_var=$2
+	local uniq_var=${service^^}_${env_var}
 	local cfg_par="${3-$env_var =}"
-	if [ -n "${!env_var+x}" ]; then
-		dc_log 5 "Setting ${cfg_par,,} ${!env_var} in $cfg_file"
-		echo ${cfg_par,,} ${!env_var} >> $cfg_file
+	if [ -n "${!uniq_var+x}" ]; then
+		local env_val="${!uniq_var}"
+	elif [ -n "${!env_var+x}" ]; then
+		local env_val="${!env_var}"
+	fi
+	if [ -n "${env_val+x}" ]; then
+		dc_log 5 "Setting ${cfg_par,,} ${env_val} in $cfg_file"
+		echo ${cfg_par,,} ${env_val} >> $cfg_file
 	fi
 }
 
@@ -135,7 +146,8 @@ kopano_generate_tls_cert() {
 # LDAP directives
 #
 kopano_apply_envvar_propmap() {
-	local cfg_file=$(kopano_gen_filename_cfg ldap)
+	local service=ldap
+	local cfg_file=$(kopano_gen_filename_cfg $service)
 	local env_var=LDAP_PROPMAP
 	if [ -n "${!env_var+x}" ]; then
 		if [ -z "${!env_var}" ]; then
@@ -144,6 +156,6 @@ kopano_apply_envvar_propmap() {
 			dc_log 5 "No ${!env_var} so copying $DOCKER_LDAP_PMAP_FILE there."
 			cp -f $DOCKER_LDAP_PMAP_FILE ${!env_var}
 		fi
-		kopano_set_envvars_cfg $cfg_file $env_var '!propmap'
+		kopano_set_envvars_cfg $service $env_var '!propmap'
 	fi
 }
