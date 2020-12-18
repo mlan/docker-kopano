@@ -16,6 +16,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_CRONTAB_FILE=/etc/kopano/docker-crontab \
 	DOCKER_CRONTAB_DIR=/etc/cron.d \
 	DOCKER_CONF_DIR1=/etc/kopano \
+	DOCKER_SMPL_DIR1=/usr/share/doc/kopano/example-config \
 	DOCKER_CONF_DIR2=/usr/share/z-push \
 	DOCKER_APPL_LIB=/var/lib/kopano \
 	DOCKER_APPL_SSL_DIR=/etc/kopano/ssl \
@@ -204,6 +205,7 @@ RUN	apt-get install --yes --no-install-recommends apache2 libapache2-mod-php \
 	&& a2dissite 000-default.conf \
 	&& a2ensite kopano-webapp \
 	&& rm -rf $DOCKER_BUILD_DEB_DIR \
+	&& cp -r $DOCKER_CONF_DIR1/webapp $DOCKER_SMPL_DIR1 \
 	&& docker-service.sh "-f -s /etc/apache2/envvars -q apache2 -DFOREGROUND -DNO_DETACH -k start"
 #
 # Ports

@@ -487,7 +487,7 @@ Prior to Kopano WebApp version 5.0.0 the parameter was `define("INSECURE_COOKIES
 
 ### `MIGRATE_CONFIG=2` Make sure WebApp plugins have  configuration files in place
 
-The WebApp plugins S/MIME and MDM has recently been add to the `mlan/kopano` image. Old deployments might not have the related configuration files in place, preventing these plugins from running. This fix places default copies of configuration files in the configuration directory should they are missing.
+The WebApp plugins S/MIME and MDM has recently been added to the `mlan/kopano` image. Old deployments might not have the related configuration files in place, preventing these plugins from running. This fix places default copies of configuration files in the configuration directory should they be missing.
 
 # Knowledge base
 
