@@ -127,6 +127,7 @@ test-pull:
 test-up_0: test-up-net
 	#
 	#
+	#
 	# test (0) run without envvars (is there smoke?)
 	#
 	# run containers see if there are logs and stop.
@@ -147,8 +148,10 @@ test-up_0: test-up-net
 	# test (0) successful
 	#
 	#
+	#
 
 test-up_1: test-up-net test-up-auth_1
+	#
 	#
 	#
 	# test (1) ldap auth, sql db, and mail send recv
@@ -165,6 +168,7 @@ test-up_1: test-up-net test-up-auth_1
 test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	#
 	#
+	#
 	# test (2) ldap auth, sql db, mail send recv secure using pem cert files
 	#
 	# send: curl lmtp://app -> srv mysql://db & srv ldap://auth
@@ -177,6 +181,7 @@ test-up_2: test-up-net test-up-auth_2 $(TST_CERT)
 	docker run -d $(APPF_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
 
 test-up_3: test-up-net test-up-auth_3 $(TST_ACME)
+	#
 	#
 	#
 	# test (3) ldap auth, sql db, mail send recv secure using acme cert
@@ -199,6 +204,7 @@ test-service_%: test-pop3_% test-imap_% test-http_%
 	#
 	#
 	# test ($*) successful
+	#
 	#
 	#
 

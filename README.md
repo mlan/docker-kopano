@@ -21,7 +21,7 @@ Hopefully this repository can be retired once the Kopano community make official
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
 - Built in utility script [run](src/docker/bin/run) helping configuring Kopano components, WebApp and Z-Push
-- [crontab](https://en.wikipedia.org/wiki/Cron) support.
+- [Crontab](https://en.wikipedia.org/wiki/Cron) support.
 - Health check
 - Hook for theming
 - Demo based on `docker-compose.yml` and `Makefile` files
@@ -308,7 +308,7 @@ Hint: Use the `kopanoAccount` attribute in the filter to differentiate between n
 
 #### `LDAP_BIND_USER`, `LDAP_BIND_PASSWD`
 
-The defaults for these environment variables are empty. If you cannot bind anonymously, do it with this distinguished name and password. Example: LDAP_BIND_USER=uid=admin,dc=example,dc=com, LDAP_BIND_PASSWD=secret.
+The defaults for these environment variables are empty. If you cannot bind anonymously, do it with this distinguished name and password. Example: LDAP_BIND_USER=cn=admin,dc=example,dc=com, LDAP_BIND_PASSWD=secret.
 
 ### Kopano LDAP attributes `LDAP_PROPMAP`
 
@@ -438,11 +438,13 @@ make app-create_smime
 
 The [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual/) WebApp plugin comes pre-installed. With it you can resync, remove, refresh and even wipe your devices, connected via [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync).
 
-## Cron
+## Crontab
 
-The `mlan/kopano` has a [cron](https://en.wikipedia.org/wiki/Cron) service activated. You can use environment variables to set up _crontab_ entries. Any environment variable name staring with `CRONTAB_ENTRY` will be use to add entries to cron.
+The `mlan/kopano` has a [cron](https://en.wikipedia.org/wiki/Cron) service activated. You can use environment variables to set up [crontab](https://man7.org/linux/man-pages/man5/crontab.5.html) entries. Any environment variable name staring with `CRONTAB_ENTRY` will be use to add entries to cron.
 
 One trivial example is `CRONTAB_ENTRY_TEST=* * * * * root logger -t cron -p user.notice "SHELL=$$SHELL, PATH=$$PATH"`.
+
+During the initial configuration procedure any `CRONTAB_ENTRY` will add crontab entries to the file `/etc/kopano/docker-crontab`, all the while previously present entries are deleted. This file defines the `PATH` variable so that you don't need to give full path names to commands in the crontab entry. This is, you need to provide the full path names to commands if this `PATH` definition is missing in the `/etc/kopano/docker-crontab` file.
 
 ## Mail transfer agent interaction
 
@@ -485,9 +487,9 @@ Sometimes a new version of Kopano breaks compatibility with old configurations. 
 
 Prior to Kopano WebApp version 5.0.0 the parameter was `define("INSECURE_COOKIES", true);` was used to allow HTTP access. Now [`define("SECURE_COOKIES", false);`](https://documentation.kopano.io/webapp_admin_manual/config.html#secure-cookies) is used instead. This fix tries to update the configuration accordingly.
 
-### `MIGRATE_CONFIG=2` Make sure WebApp plugins have  configuration files in place
+### `MIGRATE_CONFIG=2` Make sure WebApp plugins have configuration files in place
 
-The WebApp plugins S/MIME and MDM has recently been added to the `mlan/kopano` image. Old deployments might not have the related configuration files in place, preventing these plugins from running. This fix places default copies of configuration files in the configuration directory should they be missing.
+The WebApp plugins S/MIME and MDM has recently been added to the `mlan/kopano` image. Old deployments might not have the related configuration files in place, preventing these plugins from running. This fix places default copies of configuration files in the configuration directory should they be missing.
 
 # Knowledge base
 

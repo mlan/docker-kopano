@@ -2,6 +2,6 @@
 
 PATH=/usr/local/sbin:/usr/local/bin:/sbin:/bin:/usr/sbin:/usr/bin
 
-# During initialization CRONTAB_ENTRY envvars will overwrite everything after
-# the first line with a single #. Don't change the next line.
-#
+# During initialization CRONTAB_ENTRY envvars will overwrite all cron commands
+# in this file. Cron commands start with * or digits with optional white space.
+

@@ -1,3 +1,7 @@
+# 1.2.6
+
+- [docker](src/docker/bin/docker-config.sh) Allow the crontab support to work also when the file `/etc/kopano/docker-crontab` is missing.
+
 # 1.2.5
 
 - [docker](Dockerfile) Install the [kopano archiver](https://documentation.kopano.io/kopano_archiver_manual/) in target `core`.
@@ -92,7 +96,7 @@
 - Added support of the environment variable `LMTP_LISTEN=*:2003`, due to misconfiguration of `kopano-dagent` in recent releases (8.7.84).
 - Simplified the health check.
 - Changed repository directory structure to a more general one.
-- Renamed some build variables, e.g., `DOCKER_RUNSV_DIR` (was `docker_build_runit_root`).
+- Renamed some build variables, e.g., `DOCKER_RUNSV_DIR` (was `docker_build_runit_root`).
 - Cleaning up `Makefile`
 - Added more debug functionality in `demo/Makefile`
 

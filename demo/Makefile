@@ -257,7 +257,7 @@ app-init: #wait_21 app-public_store
 app-debugtools:
 	docker-compose exec app apt-get update
 	docker-compose exec app apt-get install --yes \
-	less nano ldap-utils htop net-tools lsof iputils-ping strace
+	less nano ldap-utils htop net-tools lsof iputils-ping dnsutils strace
 
 app-htop: app-debugtools
 	docker-compose exec app htop

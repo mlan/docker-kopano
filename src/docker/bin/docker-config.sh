@@ -240,7 +240,7 @@ dc_prune_pidfiles() {
 dc_crontab_entries() {
 	local entries="$(eval echo \${!$DOCKER_CRONTAB_ENV*})"
 	for entry in $entries; do
-		[ -z "${changed+x}" ] && local changed= && sed -i '/^#$/q' $DOCKER_CRONTAB_FILE
+		[ -z "${changed+x}" ] && local changed= && sed -i '/^\s*[0-9*]/d' $DOCKER_CRONTAB_FILE
 		echo "${!entry}" >> $DOCKER_CRONTAB_FILE
 		dc_log 5 "Added entry ${!entry} in $DOCKER_CRONTAB_FILE"
 	done
