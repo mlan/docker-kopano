@@ -1,3 +1,7 @@
+# 1.2.7
+
+- [kopano](src/kopano/plugin/movetopublicldap.py) Add LDAP support to the [Move to public](https://documentation.kopano.io/kopanocore_administrator_manual/special_kc_configurations.html#move-to-public ) kopano-dagent python plugin.
+
 # 1.2.6
 
 - [docker](src/docker/bin/docker-config.sh) Allow the crontab support to work also when the file `/etc/kopano/docker-crontab` is missing.

@@ -18,7 +18,7 @@ DOCKER_MAN5_DIR=${DOCKER_MAN5_DIR-/usr/share/man/man5/}
 DOCKER_APPL_SSL_CERT=${DOCKER_APPL_SSL_CERT-$DOCKER_APPL_SSL_DIR/cert.pem}
 DOCKER_APPL_SSL_KEY=${DOCKER_APPL_SSL_KEY-$DOCKER_APPL_SSL_DIR/priv_key.pem}
 DOCKER_LDAP_PMAP_FILE=${DOCKER_LDAP_PMAP_FILE-/usr/share/kopano/ldap.propmap.cfg}
-DOCKER_LDAP_SERVICES=${DOCKER_LDAP_SERVICES-archiver dagent gateway ical ldap search server spamd spooler}
+DOCKER_LDAP_SERVICES=${DOCKER_LDAP_SERVICES-archiver dagent gateway ical ldap movetopublicldap search server spamd spooler}
 sqlstate_cfg_file=$DOCKER_CONF_DIR2/backend/sqlstatemachine/config.php
 zpush_cfg_file=$DOCKER_CONF_DIR2/config.php
 webapp_cfg_file=$DOCKER_CONF_DIR1/webapp/config.php
@@ -36,6 +36,7 @@ list_parms() {
 		[ $# -ne 1 ] && echo "# $service"
 		local man_file=$(kopano_gen_filename_man $service)
 		kopano_get_envvars_man $man_file
+		kopano_get_envvars_ext $service
 		[ $# -ne 1 ] && echo
 	done
 }
@@ -48,6 +49,7 @@ list_parms() {
 # With kopano-webapp and z-push use installed config file to find valid keys.
 #
 kopano_apply_envvars_core() {
+	kopano_enable_envvars_plugin
 	for service in $DOCKER_LDAP_SERVICES; do
 		kopano_apply_envvars_cfg $service
 	done
@@ -71,17 +73,18 @@ kopano_apply_envvars_cfg() {
 	local service=$1
 	local cfg_file=$(kopano_gen_filename_cfg $service)
 	local man_file=$(kopano_gen_filename_man $service)
+	local env_vars="$(kopano_get_envvars_ext $service)"
 	if [ -f $man_file ]; then
-		local env_vars="$(kopano_get_envvars_man $man_file)"
-		if [ -e $cfg_file ]; then
-			mv -f $cfg_file $cfg_file.bak
-		fi
-		for env_var in $env_vars; do
-			kopano_set_envvars_cfg $service $env_var
-		done
+		env_vars="$(kopano_get_envvars_man $man_file) $env_vars"
 	else
-		dc_log 4 "Could not find $man_file"
+		dc_log 6 "Could not find $man_file"
 	fi
+	if [ -e $cfg_file ]; then
+		mv -f $cfg_file $cfg_file.bak
+	fi
+	for env_var in $env_vars; do
+		kopano_set_envvars_cfg $service $env_var
+	done
 }
 
 kopano_apply_envvars_php() {
@@ -116,6 +119,35 @@ kopano_set_envvars_cfg() {
 		dc_log 5 "Setting ${cfg_par,,} ${env_val} in $cfg_file"
 		echo ${cfg_par,,} ${env_val} >> $cfg_file
 	fi
+}
+
+#
+# External parameters
+# services without a man file or additional parameters are listed here.
+#
+kopano_get_envvars_ext() {
+	local service=$1
+	local vars
+	case $service in
+		movetopublicldap)
+			vars="ldap_public_store_attribute ldap_public_store_attribute_token"
+			;;
+	esac
+	echo $vars | tr "[:lower:]" "[:upper:]" | tr " " "\n" | sort -u
+}
+
+#
+# Python plugins
+#
+kopano_enable_envvars_plugin() {
+	for service in dagent spooler; do
+		local envvar=${service^^}_PLUGINS
+		for plugin in ${!envvar}; do
+			dc_log 5 "Enabling ${service} python plugin ${plugin}"
+			ln -sf /usr/share/kopano-${service}/python/plugins/${plugin} /var/lib/kopano/${service}/plugins
+			export ${service^^}_PLUGIN_ENABLED=yes
+		done
+	done
 }
 
 #

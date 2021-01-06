@@ -3,8 +3,9 @@
 ![travis-ci test](https://img.shields.io/travis/mlan/docker-kopano.svg?label=build&style=popout-square&logo=travis)
 ![docker build](https://img.shields.io/docker/cloud/build/mlan/kopano.svg?label=build&style=popout-square&logo=docker)
 ![image Size](https://img.shields.io/docker/image-size/mlan/kopano.svg?label=size&style=popout-square&logo=docker)
-![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
 ![docker pulls](https://img.shields.io/docker/pulls/mlan/kopano.svg?label=pulls&style=popout-square&logo=docker)
+![docker stars](https://img.shields.io/docker/stars/mlan/kopano.svg?label=stars&style=popout-square&logo=docker)
+![github stars](https://img.shields.io/github/stars/mlan/docker-kopano.svg?label=stars&style=popout-square&logo=github)
 
 This (non official) repository provides dockerized web mail service as well as Exchange ActiveSync (EAS), IMAP, POP3 and ICAL service (and their secure variants IMAPS, POP3S and ICALS). It is based on [Kopano](https://kopano.com) core components, as well as the Kopano WebApp and [Z-Push](http://z-push.org/). The image uses [nightly built packages](https://download.kopano.io/community/) which are provided by the Kopano community.
 
@@ -21,6 +22,7 @@ Hopefully this repository can be retired once the Kopano community make official
 - Configuration using environment variables
 - Log directed to docker daemon with configurable level
 - Built in utility script [run](src/docker/bin/run) helping configuring Kopano components, WebApp and Z-Push
+- [Move to public with LDAP lookup](#move-to-public-with-ldap-lookup)
 - [Crontab](https://en.wikipedia.org/wiki/Cron) support.
 - Health check
 - Hook for theming
@@ -438,13 +440,64 @@ make app-create_smime
 
 The [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual/) WebApp plugin comes pre-installed. With it you can resync, remove, refresh and even wipe your devices, connected via [Exchange ActiveSync (EAS)](https://en.wikipedia.org/wiki/Exchange_ActiveSync).
 
+## Public folders
+
+There are two type of stores (folders containing communication elements); private and public stores. There can only be one public store. It is the Kopano dagent that places incoming messages into mail boxes, that is the private and public stores.
+
+Public folders are managed by the system admin and not by individual users. Users have them mapped automatically. The public folders can be synced via [Exchange ActiveSync (EAS)](https://wiki.z-hub.io/display/ZP/Sharing+folders+and+Read-only) .
+
+With the current Kopano implementation, delivering to the public store is configured separately from normal user management. There is the [move to public](https://documentation.kopano.io/kopanocore_administrator_manual/special_kc_configurations.html#move-to-public) plugin which moves incoming messages to a folder in the public store. It has a static configuration and does not support LDAP lookup. 
+
+### Move to public with LDAP lookup
+
+The `mlan/kopano` image include a extended version of the move to public plugin which use LDAP lookup, instead of a static file based lookup. When the plugin [move to public with LDAP](src/kopano/plugin/movetopublicldap.py) is enabled, `DAGENT_PLUGINS=movetopublicldap.py`, the kopano dagent will do two LDAP queries. The first is to search for an entry/user with matching email address. The second, introduced with this plugin, is to get the public folder from this entry. If found the message will be delivered to the public folder otherwise it will be delivered to the mailbox of the user.
+
+Lets demonstrate how delivery to a public folder is configured. With this LDAP entry:
+
+```yaml
+dn: uid=public,ou=users,dc=example,dc=com
+cn: public
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+sn: public
+uid: public
+mail: public@example.com
+kopanoAccount: 1
+kopanoHidden: 1
+kopanoSharedStoreOnly: 1
+kopanoResourceType: publicStore:Public Stores/public
+```
+
+messages to `public@example.com` will be delivered to the public store in `Public Stores/public`.
+The central  [attribute](https://documentation.kopano.io/kopanocore_administrator_manual/appendix_b.html#appendix-b-ldap-attribute-description) is `kopanoResourceType: publicStore:Public Stores/public`. It contains a token and a folder name. The token match is case sensitive and there must be a colon `:` separating
+the token and the public folder name. The folder name can contain space and
+sub folders, which are distinguished using a forward slash `/`.
+
+The parameters in `/etc/kopano/ldap.cfg` will be used to arrange the LDAP queries.
+The LDAP attribute holding the token and the token itself have the following
+default values, which can be modified in `/etc/kopano/movetopublicldap.cfg` if desired.
+
+```yaml
+ldap_public_store_attribute = kopanoResourceType
+ldap_public_store_attribute_token = publicStore
+```
+
+As with other parameters, environment variables can be used to define them: `LDAP_PUBLIC_STORE_ATTRIBUTE=kopanoResourceType` and  `LDAP_PUBLIC_STORE_ATTRIBUTE_TOKEN=publicStore`.
+
+## Shared folders
+
+Users can share folders when sufficient permission have been granted. When logged into WebApp with an administrative account (`kopanoAdmin: 1`) you can modify the permissions on users shares and folders. Users can then, when logged into WebApp, open the inbox of other users by selecting `Open Shared Mails`.
+
+The [impersonation](https://wiki.z-hub.io/display/ZP/Impersonation) mechanism allow such shared folders to be synced over [Exchange ActiveSync (EAS)](https://wiki.z-hub.io/display/ZP/Sharing+folders+and+Read-only) too.
+
 ## Crontab
 
 The `mlan/kopano` has a [cron](https://en.wikipedia.org/wiki/Cron) service activated. You can use environment variables to set up [crontab](https://man7.org/linux/man-pages/man5/crontab.5.html) entries. Any environment variable name staring with `CRONTAB_ENTRY` will be use to add entries to cron.
 
 One trivial example is `CRONTAB_ENTRY_TEST=* * * * * root logger -t cron -p user.notice "SHELL=$$SHELL, PATH=$$PATH"`.
 
-During the initial configuration procedure any `CRONTAB_ENTRY` will add crontab entries to the file `/etc/kopano/docker-crontab`, all the while previously present entries are deleted. This file defines the `PATH` variable so that you don't need to give full path names to commands in the crontab entry. This is, you need to provide the full path names to commands if this `PATH` definition is missing in the `/etc/kopano/docker-crontab` file.
+During the initial configuration procedure any `CRONTAB_ENTRY` will add crontab entries to the file `/etc/kopano/docker-crontab`, all the while previously present entries are deleted. This file defines the `PATH` variable so that you don't need to give full path names to commands in the crontab entry. This is, you need to provide the full path names to commands if this `PATH` definition is missing in the `/etc/kopano/docker-crontab` file.
 
 ## Mail transfer agent interaction
 

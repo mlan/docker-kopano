@@ -17,6 +17,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 	DOCKER_CRONTAB_DIR=/etc/cron.d \
 	DOCKER_CONF_DIR1=/etc/kopano \
 	DOCKER_SMPL_DIR1=/usr/share/doc/kopano/example-config \
+	DOCKER_PLUG_DIR=/usr/share/kopano-dagent/python/plugins \
 	DOCKER_CONF_DIR2=/usr/share/z-push \
 	DOCKER_APPL_LIB=/var/lib/kopano \
 	DOCKER_APPL_SSL_DIR=/etc/kopano/ssl \
@@ -35,6 +36,7 @@ COPY	src/*/bin $DOCKER_BIN_DIR/
 COPY	src/*/entry.d $DOCKER_ENTRY_DIR/
 COPY	src/*/exit.d $DOCKER_EXIT_DIR/
 COPY	src/*/config $DOCKER_CONF_DIR1/
+COPY	src/*/plugin $DOCKER_PLUG_DIR/
 
 #
 # Install helpers. Set bash as default shell. Setup syslogs service.
@@ -115,6 +117,7 @@ RUN	mkdir -p $DOCKER_BUILD_DEB_DIR \
 	&& for i in $(seq ${DOCKER_BUILD_PASSES}); do echo "\033[1;36mKOPANO CORE INSTALL PASS: $i\033[0m" \
 	&& dpkg --install --force-depends --skip-same-version --recursive $DOCKER_BUILD_DEB_DIR \
 	&& apt-get install --yes --no-install-recommends --fix-broken; done \
+	&& apt-get install --yes --no-install-recommends python3-ldap \
 	&& mkdir -p /var/lib/kopano/attachments && chown $DOCKER_APPL_RUNAS: /var/lib/kopano/attachments \
 	&& mkdir -p $DOCKER_APPL_SSL_DIR \
 	&& mkdir -p $DOCKER_ACME_SSL_DIR \

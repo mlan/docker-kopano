@@ -27,6 +27,7 @@ services:
       - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${LDAP_GROUPOBJ-posixGroup}
       - LDAP_GROUPMEMBERS_ATTRIBUTE_TYPE=dn
       - LDAP_PROPMAP=
+      - DAGENT_PLUGINS=movetopublicldap.py
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}

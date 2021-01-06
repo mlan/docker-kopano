@@ -76,7 +76,7 @@ wait_%:
 web:
 	firefox localhost:8008 &
 
-auth-init: wait_11 auth-mod_conf auth-add_schema auth-add_data
+auth-init: wait_11 auth-mod_conf auth-add_schema auth-add_data auth-add_sto
 
 define LDIF_MOD_CONF
 dn: olcDatabase={-1}frontend,cn=config
@@ -115,8 +115,26 @@ cn: $(LDAP_TEST_GROUP)
 objectClass: top
 objectClass: groupOfNames
 objectClass: kopano-group
+member: uid=$(LDAP_TEST_ADMIN),ou=$(LDAP_USEROU),$(LDAP_BASE)
 member: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)
 mail: $(LDAP_TEST_GROUP)@$(MAIL_DOMAIN)
+
+dn: uid=$(LDAP_TEST_ADMIN),ou=$(LDAP_USEROU),$(LDAP_BASE)
+changetype: add
+cn: $(LDAP_TEST_ADMIN)
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+sn: $(LDAP_TEST_ADMIN)
+uid: $(LDAP_TEST_ADMIN)
+mail: $(LDAP_TEST_ADMIN)@$(MAIL_DOMAIN)
+userPassword: $(LDAP_TEST_ADMINPW)
+telephoneNumber: 0123 987654321
+title: System Admin
+kopanoAccount: 1
+kopanoAdmin: 1
+kopanoEnabledFeatures: imap
+kopanoEnabledFeatures: pop3
 
 dn: uid=$(LDAP_TEST_USER),ou=$(LDAP_USEROU),$(LDAP_BASE)
 changetype: add
@@ -127,21 +145,53 @@ objectClass: kopano-user
 sn: $(LDAP_TEST_USER)
 uid: $(LDAP_TEST_USER)
 mail: $(LDAP_TEST_USER)@$(MAIL_DOMAIN)
-userPassword: $(LDAP_TEST_PASSWD)
+userPassword: $(LDAP_TEST_USERPW)
 telephoneNumber: 0123 123456789
-title: MCP
+title: First User
 kopanoAccount: 1
-kopanoAdmin: 1
 kopanoEnabledFeatures: imap
 kopanoEnabledFeatures: pop3
 endef
 export LDIF_ADD_DATA
+
+define LDIF_ADD_STO
+dn: uid=$(LDAP_TEST_SHR),ou=$(LDAP_USEROU),$(LDAP_BASE)
+changetype: add
+cn: $(LDAP_TEST_SHR)
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+sn: $(LDAP_TEST_SHR)
+uid: $(LDAP_TEST_SHR)
+mail: $(LDAP_TEST_SHR)@$(MAIL_DOMAIN)
+kopanoAccount: 1
+kopanoSharedStoreOnly: 1
+
+dn: uid=$(LDAP_TEST_PUB),ou=$(LDAP_USEROU),$(LDAP_BASE)
+changetype: add
+cn: $(LDAP_TEST_PUB)
+objectClass: top
+objectClass: inetOrgPerson
+objectClass: kopano-user
+sn: $(LDAP_TEST_PUB)
+uid: $(LDAP_TEST_PUB)
+mail: $(LDAP_TEST_PUB)@$(MAIL_DOMAIN)
+kopanoAccount: 1
+kopanoHidden: 1
+kopanoSharedStoreOnly: 1
+kopanoResourceType: publicStore:Public Stores/public
+
+endef
+export LDIF_ADD_STO
 
 auth-mod_conf:
 	echo "$$LDIF_MOD_CONF" | docker-compose exec -T auth ldap modify
 
 auth-add_data:
 	echo "$$LDIF_ADD_DATA" | docker-compose exec -T auth ldap modify
+
+auth-add_sto:
+	echo "$$LDIF_ADD_STO" | docker-compose exec -T auth ldap modify
 
 auth-add_schema:
 	docker-compose exec app zcat /usr/share/doc/kopano/kopano.ldif.gz \
@@ -162,14 +212,14 @@ auth-show_cat1:
 	docker-compose exec auth slapcat -n1
 
 auth-gui-up:
-	docker run -d --rm --name auth-gui --network demo_backend \
+	docker run -d --name auth-gui --network demo_backend \
 	-p 127.0.0.1:8001:80 -e PHPLDAPADMIN_LDAP_HOSTS=auth \
 	-e PHPLDAPADMIN_HTTPS=false osixia/phpldapadmin || true
 	sleep 2
 	firefox localhost:8001 &
 
 auth-gui-down:
-	docker stop auth-gui || true
+	docker rm -f auth-gui || true
 
 mta-init:
 
@@ -184,13 +234,23 @@ mta-test_smtp:
 mta-test_smtps:
 	printf "From: A tester <test@example.biz>\nTo: <$(LDAP_TEST_USER)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTPS test message\n\nGreat news! You can receive secure email.\n" \
 	| curl smtps://localhost -T - --mail-from test@example.biz -k \
-	-u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) \
+	-u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) \
 	--mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN) $(curl_dbg)
 
 mta-test_smtp2:
 	printf "From: A info tester <test-info@example.biz>\nTo: <$(LDAP_TEST_USER)-info@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message \n\nGreat news! $(LDAP_TEST_USER)-info@$(MAIL_DOMAIN) can also receive email.\n" \
 	| curl smtp://localhost -T - --mail-from test@example.biz \
 	--mail-rcpt $(LDAP_TEST_USER)@$(MAIL_DOMAIN) $(curl_dbg)
+
+mta-test_shared: all-test_quiet
+	printf "From: A tester <test@example.biz>\nTo: <$(LDAP_TEST_SHR)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! A shared store can receive email.\n" \
+	| curl smtp://localhost -T - --mail-from test@example.biz \
+	--mail-rcpt $(LDAP_TEST_SHR)@$(MAIL_DOMAIN) $(curl_dbg)
+
+mta-test_public: all-test_quiet
+	printf "From: A tester <test@example.biz>\nTo: <$(LDAP_TEST_PUB)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! A public store can receive email.\n" \
+	| curl smtp://localhost -T - --mail-from test@example.biz \
+	--mail-rcpt $(LDAP_TEST_PUB)@$(MAIL_DOMAIN) $(curl_dbg)
 
 mta-razor:
 	docker-compose exec mta run amavis_register_razor
@@ -234,15 +294,15 @@ mta-hostaddr:
 	$(eval myhost := $(call _ip,$(COMPOSE_PROJECT_NAME)_mta_1))
 
 mta-test_auth:
-	docker-compose exec mta doveadm auth test $(LDAP_TEST_USER) $(LDAP_TEST_PASSWD)
+	docker-compose exec mta doveadm auth test $(LDAP_TEST_USER) $(LDAP_TEST_USERPW)
 
 mta-test_imap: mta-hostaddr
 	curl imap://$(myhost) -X CAPABILITY
-	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW)
 
 mta-test_rimap:
 	docker-compose exec mta curl imap://app -X CAPABILITY
-	docker-compose exec mta curl imap://app -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD)
+	docker-compose exec mta curl imap://app -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW)
 
 mta-test_ldap: mta-debugtools
 	docker-compose exec mta ldapsearch -H ldap://auth:389 -xLLL -s base namingContexts
@@ -252,7 +312,17 @@ db-init:
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
 
-app-init: #wait_21 app-public_store
+db-gui-up:
+	docker run -d --name db-gui --network demo_backend \
+	-p 127.0.0.1:8002:80 -e PMA_HOST=db \
+	phpmyadmin/phpmyadmin || true
+	sleep 2
+	firefox localhost:8002 &
+
+db-gui-down:
+	docker rm -f db-gui || true
+
+app-init: #wait_92 app-public_store
 
 app-debugtools:
 	docker-compose exec app apt-get update
@@ -279,22 +349,22 @@ app-test_lmtp: app-hostaddr
 app-test_all: all-test_muted app-test_imap app-test_pop3 app-test_ical app-test_imaps app-test_pop3s app-test_icals
 
 app-test_imap: app-hostaddr
-	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+	curl imap://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) $(curl_dbg)
 
 app-test_imaps: app-hostaddr
-	curl imaps://$(myhost) -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+	curl imaps://$(myhost) -k -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) $(curl_dbg)
 
 app-test_pop3: app-hostaddr
-	curl pop3://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+	curl pop3://$(myhost) -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) $(curl_dbg)
 
 app-test_pop3s: app-hostaddr
-	curl pop3s://$(myhost) -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+	curl pop3s://$(myhost) -k -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) $(curl_dbg)
 
 app-test_ical: app-hostaddr
-	curl http://$(myhost):8080 -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+	curl http://$(myhost):8080 -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) $(curl_dbg)
 
 app-test_icals: app-hostaddr
-	curl https://$(myhost):8443 -k -u $(LDAP_TEST_USER):$(LDAP_TEST_PASSWD) $(curl_dbg)
+	curl https://$(myhost):8443 -k -u $(LDAP_TEST_USER):$(LDAP_TEST_USERPW) $(curl_dbg)
 
 app-test_tls: app-hostaddr
 	docker run --rm -it --network demo_backend drwetter/testssl.sh app:993 || true
@@ -312,7 +382,7 @@ app-create_store:
 	docker-compose exec app kopano-admin --create-store $(LDAP_TEST_USER)
 
 app-public_store:
-	docker-compose exec app kopano-storeadm -h default: -P
+	docker-compose exec app kopano-storeadm -P
 
 $(addprefix app-parms_,archiver dagent gateway ical ldap search server spamd spooler):
 	docker-compose exec app run list_parms $(patsubst app-parms_%,%,$@)
@@ -336,7 +406,7 @@ all-destroy_smime:
 
 %.p12: %.crt
 	openssl pkcs12 -export -in $< -inkey $*.key -out $@ \
-	-passout pass:$(LDAP_TEST_PASSWD)
+	-passout pass:$(LDAP_TEST_USERPW)
 
 %.csr: %.key
 	openssl req -new -key $< -out $@ \
