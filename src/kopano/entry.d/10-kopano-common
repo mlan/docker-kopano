@@ -18,7 +18,7 @@ DOCKER_MAN5_DIR=${DOCKER_MAN5_DIR-/usr/share/man/man5/}
 DOCKER_APPL_SSL_CERT=${DOCKER_APPL_SSL_CERT-$DOCKER_APPL_SSL_DIR/cert.pem}
 DOCKER_APPL_SSL_KEY=${DOCKER_APPL_SSL_KEY-$DOCKER_APPL_SSL_DIR/priv_key.pem}
 DOCKER_LDAP_PMAP_FILE=${DOCKER_LDAP_PMAP_FILE-/usr/share/kopano/ldap.propmap.cfg}
-DOCKER_LDAP_SERVICES=${DOCKER_LDAP_SERVICES-archiver dagent gateway ical ldap movetopublicldap search server spamd spooler}
+DOCKER_LDAP_SERVICES=${DOCKER_LDAP_SERVICES-archiver dagent gateway ical ldap search server spamd spooler}
 sqlstate_cfg_file=$DOCKER_CONF_DIR2/backend/sqlstatemachine/config.php
 zpush_cfg_file=$DOCKER_CONF_DIR2/config.php
 webapp_cfg_file=$DOCKER_CONF_DIR1/webapp/config.php
@@ -30,7 +30,7 @@ webapp_smime_cfg_file=$DOCKER_CONF_DIR1/webapp/config-smime.php
 # CLI commands
 #
 list_parms() {
-	local services="$DOCKER_LDAP_SERVICES"
+	local services="$DOCKER_LDAP_SERVICES $DAGENT_PLUGINS"
 	[ $# -ge 0 ] && services="$@"
 	for service in $services; do
 		[ $# -ne 1 ] && echo "# $service"
@@ -50,7 +50,7 @@ list_parms() {
 #
 kopano_apply_envvars_core() {
 	kopano_enable_envvars_plugin
-	for service in $DOCKER_LDAP_SERVICES; do
+	for service in $DOCKER_LDAP_SERVICES $DAGENT_PLUGINS; do
 		kopano_apply_envvars_cfg $service
 	done
 }
@@ -130,7 +130,7 @@ kopano_get_envvars_ext() {
 	local vars
 	case $service in
 		movetopublicldap)
-			vars="ldap_public_store_attribute ldap_public_store_attribute_token"
+			vars="ldap_public_folder_attribute ldap_public_folder_attribute_token"
 			;;
 	esac
 	echo $vars | tr "[:lower:]" "[:upper:]" | tr " " "\n" | sort -u
@@ -143,9 +143,16 @@ kopano_enable_envvars_plugin() {
 	for service in dagent spooler; do
 		local envvar=${service^^}_PLUGINS
 		for plugin in ${!envvar}; do
-			dc_log 5 "Enabling ${service} python plugin ${plugin}"
-			ln -sf /usr/share/kopano-${service}/python/plugins/${plugin} /var/lib/kopano/${service}/plugins
-			export ${service^^}_PLUGIN_ENABLED=yes
+			local pyfile=$(find /usr/share/kopano* -name ${plugin}.py)
+			if [ -z "$pyfile" ]; then
+				dc_log 5 "Unable to locate ${service} python plugin ${plugin}"
+			else
+				dc_log 5 "Enabling ${service} python plugin ${plugin}"
+				mkdir -p $DOCKER_CONF_DIR1/${service}
+				ln -sf ${pyfile} $DOCKER_CONF_DIR1/${service}
+				export ${service^^}_PLUGIN_PATH=$DOCKER_CONF_DIR1/${service}
+				export ${service^^}_PLUGIN_ENABLED=yes
+			fi
 		done
 	done
 }

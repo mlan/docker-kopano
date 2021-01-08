@@ -25,9 +25,9 @@ class ldapstores():
 		'ldap_bind_passwd': None,
 		'ldap_user_unique_attribute': "uid",
 		'ldap_user_search_filter': "(kopanoAccount=1)",
-#		'ldap_user_search_filter': "(&(kopanoAccount=1)(kopanoResourceType=publicStore:*))",
-		'ldap_public_store_attribute': "kopanoResourceType",
-		'ldap_public_store_attribute_token': "publicStore"
+#		'ldap_user_search_filter': "(&(kopanoAccount=1)(kopanoResourceType=publicFolder:*))",
+		'ldap_public_folder_attribute': "kopanoResourceType",
+		'ldap_public_folder_attribute_token': "publicFolder"
 	}
 
 	def __init__(self, configfile = '/etc/kopano/ldap.cfg'):
@@ -58,7 +58,7 @@ class ldapstores():
 				ldap_result_id = l.search(self.config['search_base'], \
 					ldap.SCOPE_SUBTREE, self.config['user_search_filter'], \
 					[self.config['user_unique_attribute'], \
-					self.config['public_store_attribute']])
+					self.config['public_folder_attribute']])
 				results = []
 				while 1:
 					result_type, result_data = l.result(ldap_result_id, 0)
@@ -77,11 +77,11 @@ class ldapstores():
 		public = []
 		for store in stores:
 			recipient = store[1].get(self.config['user_unique_attribute'])
-			tokenandfolder = store[1].get(self.config['ldap_public_store_attribute'])
+			tokenandfolder = store[1].get(self.config['ldap_public_folder_attribute'])
 			if tokenandfolder:
 				token = tokenandfolder.split(':')[0]
 				destination_folder = tokenandfolder.split(':')[1]
-				if (token == self.config['ldap_public_store_attribute_token']);
+				if (token == self.config['ldap_public_folder_attribute_token']);
 					public[recipient] = destination_folder
 		return public
 

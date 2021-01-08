@@ -444,13 +444,13 @@ The [Mobile Device Management](https://documentation.kopano.io/webapp_mdm_manual
 
 There are two type of stores (folders containing communication elements); private and public stores. There can only be one public store. It is the Kopano dagent that places incoming messages into mail boxes, that is the private and public stores.
 
-Public folders are managed by the system admin and not by individual users. Users have them mapped automatically. The public folders can be synced via [Exchange ActiveSync (EAS)](https://wiki.z-hub.io/display/ZP/Sharing+folders+and+Read-only) .
+Public folders are configured by the system admin. Users have them mapped automatically. The shared and public folders can be synced with mobile devices via [Exchange ActiveSync (EAS)](https://wiki.z-hub.io/display/ZP/Sharing+folders+and+Read-only). Each user can manage which shared or public folders to sync with her mobile devices by using the [Mobile Device Management](#mobile-device-management) WebApp plugin.
 
 With the current Kopano implementation, delivering to the public store is configured separately from normal user management. There is the [move to public](https://documentation.kopano.io/kopanocore_administrator_manual/special_kc_configurations.html#move-to-public) plugin which moves incoming messages to a folder in the public store. It has a static configuration and does not support LDAP lookup. 
 
 ### Move to public with LDAP lookup
 
-The `mlan/kopano` image include a extended version of the move to public plugin which use LDAP lookup, instead of a static file based lookup. When the plugin [move to public with LDAP](src/kopano/plugin/movetopublicldap.py) is enabled, `DAGENT_PLUGINS=movetopublicldap.py`, the kopano dagent will do two LDAP queries. The first is to search for an entry/user with matching email address. The second, introduced with this plugin, is to get the public folder from this entry. If found the message will be delivered to the public folder otherwise it will be delivered to the mailbox of the user.
+The `mlan/kopano` image include a extended version of the move to public plugin which use LDAP lookup, instead of a static file based lookup. When the plugin [move to public with LDAP](src/kopano/plugin/movetopublicldap.py) is enabled, `DAGENT_PLUGINS=movetopublicldap`, the kopano dagent will do two LDAP queries. The first is to search for an entry/user with matching email address. The second, introduced with this plugin, is to get the public folder from this entry. If found the message will be delivered to the public folder otherwise it will be delivered to the mailbox of the user.
 
 Lets demonstrate how delivery to a public folder is configured. With this LDAP entry:
 
@@ -466,11 +466,11 @@ mail: public@example.com
 kopanoAccount: 1
 kopanoHidden: 1
 kopanoSharedStoreOnly: 1
-kopanoResourceType: publicStore:Public Stores/public
+kopanoResourceType: publicFolder:Public Stores/public
 ```
 
 messages to `public@example.com` will be delivered to the public store in `Public Stores/public`.
-The central  [attribute](https://documentation.kopano.io/kopanocore_administrator_manual/appendix_b.html#appendix-b-ldap-attribute-description) is `kopanoResourceType: publicStore:Public Stores/public`. It contains a token and a folder name. The token match is case sensitive and there must be a colon `:` separating
+The central  [attribute](https://documentation.kopano.io/kopanocore_administrator_manual/appendix_b.html#appendix-b-ldap-attribute-description) is `kopanoResourceType: publicFolder:Public Stores/public`. It contains a token and a folder name. The token match is case sensitive and there must be a colon `:` separating
 the token and the public folder name. The folder name can contain space and
 sub folders, which are distinguished using a forward slash `/`.
 
@@ -479,17 +479,17 @@ The LDAP attribute holding the token and the token itself have the following
 default values, which can be modified in `/etc/kopano/movetopublicldap.cfg` if desired.
 
 ```yaml
-ldap_public_store_attribute = kopanoResourceType
-ldap_public_store_attribute_token = publicStore
+ldap_public_folder_attribute = kopanoResourceType
+ldap_public_folder_attribute_token = publicFolder
 ```
 
-As with other parameters, environment variables can be used to define them: `LDAP_PUBLIC_STORE_ATTRIBUTE=kopanoResourceType` and  `LDAP_PUBLIC_STORE_ATTRIBUTE_TOKEN=publicStore`.
+As with other parameters, environment variables can be used to define them: `LDAP_PUBLIC_FOLDER_ATTRIBUTE=kopanoResourceType` and  `LDAP_PUBLIC_FOLDER_ATTRIBUTE_TOKEN=publicFolder`.
 
 ## Shared folders
 
 Users can share folders when sufficient permission have been granted. When logged into WebApp with an administrative account (`kopanoAdmin: 1`) you can modify the permissions on users shares and folders. Users can then, when logged into WebApp, open the inbox of other users by selecting `Open Shared Mails`.
 
-The [impersonation](https://wiki.z-hub.io/display/ZP/Impersonation) mechanism allow such shared folders to be synced over [Exchange ActiveSync (EAS)](https://wiki.z-hub.io/display/ZP/Sharing+folders+and+Read-only) too.
+The [impersonation](https://wiki.z-hub.io/display/ZP/Impersonation) mechanism allow such shared folders to be synced over [Exchange ActiveSync (EAS)](https://wiki.z-hub.io/display/ZP/Sharing+folders+and+Read-only) too. Each user can manage which shared or public folders to sync with her mobile devices by using the [Mobile Device Management](#mobile-device-management) WebApp plugin.
 
 ## Crontab
 

@@ -179,7 +179,7 @@ mail: $(LDAP_TEST_PUB)@$(MAIL_DOMAIN)
 kopanoAccount: 1
 kopanoHidden: 1
 kopanoSharedStoreOnly: 1
-kopanoResourceType: publicStore:Public Stores/public
+kopanoResourceType: publicFolder:Public Stores/public
 
 endef
 export LDIF_ADD_STO

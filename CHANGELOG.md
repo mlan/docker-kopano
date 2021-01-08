@@ -1,6 +1,7 @@
 # 1.2.7
 
 - [kopano](src/kopano/plugin/movetopublicldap.py) Add LDAP support to the [Move to public](https://documentation.kopano.io/kopanocore_administrator_manual/special_kc_configurations.html#move-to-public ) kopano-dagent python plugin.
+- [kopano](src/kopano/plugin/movetopublicldap.py) Add sample config file for the kopano-dagent python plugin movetopublicldap.
 
 # 1.2.6
 

@@ -8,13 +8,13 @@ store. If folders are missing they will be created.
 A LDAP entry including:
 
 kopanoAccount: 1
-kopanoResourceType: publicStore:<public folder>
+kopanoResourceType: publicFolder:<public folder>
 
 will have its email delivered to the public store in <public folder>.
 The token match is case sensitive and there must be a colon ':' separating
 the token and the public folder name. The folder name can contain space and
 sub folders, which are distinguished using forward slash '/'.
-So if we have 'kopanoResourceType: publicStore:Public Stores/public' emails will
+So if we have 'kopanoResourceType: publicFolder:Public Stores/public' emails will
 be delivered to 'Public Folders/Public Stores/public'.
 
 The parameters in /etc/kopano/ldap.cfg will be used for the LDAP query.
@@ -22,8 +22,8 @@ The LDAP attribute holding the token and the token itself have the following
 default values, which can be modified in /etc/kopano/movetopublicldap.cfg
 if desired.
 
-ldap_public_store_attribute = kopanoResourceType
-ldap_public_store_attribute_token = publicStore
+ldap_public_folder_attribute = kopanoResourceType
+ldap_public_folder_attribute_token = publicFolder
 
 """
 from sys import hexversion
@@ -37,6 +37,7 @@ from plugintemplates import IMapiDAgentPlugin, MP_CONTINUE, MP_STOP_SUCCESS
 from zconfig import ZConfigParser
 import configparser
 import ldap
+import os.path
 
 class KConfigParser(ZConfigParser):
 	""" Extends zconfig.ZConfigParser to also allow !directive in cfg files """
@@ -55,12 +56,13 @@ class MoveToPublic(IMapiDAgentPlugin):
 
 	DEFAULTCONFIG = {
 		'ldap_uri': None,
+		'ldap_starttls': "no",
 		'ldap_search_base': None,
 		'ldap_bind_user': None,
 		'ldap_bind_passwd': None,
 		'ldap_user_unique_attribute': "uid",
-		'ldap_public_store_attribute': "kopanoResourceType",
-		'ldap_public_store_attribute_token': "publicStore"
+		'ldap_public_folder_attribute': "kopanoResourceType",
+		'ldap_public_folder_attribute_token': "publicFolder"
 	}
 
 	def __init__(self, logger):
@@ -72,34 +74,40 @@ class MoveToPublic(IMapiDAgentPlugin):
 		options = [opt.split('_', 1)[1] for opt in defaultconfig.keys()]
 		config = None
 		for configfile in configfiles:
-			if not config:
-				config = KConfigParser(configfile, defaultconfig)
+			if os.path.isfile(configfile):
+				self.logger.logDebug("*--- Reading file {}".format(configfile))
+				if not config:
+					config = KConfigParser(configfile, defaultconfig)
+				else:
+					config = KConfigParser(configfile, config.options())
 			else:
-				config = KConfigParser(configfile, config.options())
+				self.logger.logDebug("*--- Can't find file {}".format(configfile))
 		self.config = config.getdict('ldap',options)
 		self.logger.logDebug("*--- Config list {}".format(self.config))
 		return self.config
 
 	def searchfilter(self, recipient):
-		""" (&(uid=recipient)(kopanoResourceType=publicStore:*)) """
+		""" (&(uid=recipient)(kopanoResourceType=publicFolder:*)) """
 		return ("(&({}={})({}={}:*))"
 			.format(self.config['user_unique_attribute'],
 			recipient,
-			self.config['public_store_attribute'],
-			self.config['public_store_attribute_token']))
+			self.config['public_folder_attribute'],
+			self.config['public_folder_attribute_token']))
 
 	def searchquery(self, recipient):
 		""" Query a LDAP/AD driectory server to lookup recipient using
-		search_base and return public_store_attribute
+		search_base and return public_folder_attribute
 		"""
-		if (self.config['uri'] is None):
+		if not self.config or not self.config['uri']:
 			self.logger.logError(("!--- ldap_uri is not defined."
-				" Please check {}" .format(self.CONFIGFILES[0])))
+				" Please check {}" .format(self.CONFIGFILES)))
 			return None
 		else:
 			l = ldap.initialize(self.config['uri'])
 			try:
 				l.protocol_version = ldap.VERSION3
+				if self.config['starttls'] == 'yes':
+					l.start_tls_s()
 				l.simple_bind_s(self.config['bind_user'] or u'', \
 					self.config['bind_passwd'] or u'')
 			except ldap.SERVER_DOWN as e:
@@ -108,7 +116,7 @@ class MoveToPublic(IMapiDAgentPlugin):
 				return None
 			except ldap.INVALID_CREDENTIALS as e:
 				self.logger.logError(("!--- Invalid LDAP credentials {}"
-					" Please check {}" .format(e, self.CONFIGFILES[0])))
+					" Please check {}" .format(e, self.CONFIGFILES)))
 				l.unbind_s()
 				return None
 			except ldap.LDAPError as e:
@@ -118,19 +126,19 @@ class MoveToPublic(IMapiDAgentPlugin):
 			try:
 				result = l.search_s(self.config['search_base'], \
 					ldap.SCOPE_SUBTREE, self.searchfilter(recipient), \
-					[self.config['public_store_attribute']])
+					[self.config['public_folder_attribute']])
 			except ldap.LDAPError as e:
 				self.logger.logError("!--- LDAPError {}".format(e))
 			l.unbind_s()
 		return result
 
 	def publicfolder(self, recipient):
-		""" Check for ldap_public_store_attribute_token and return folder """
+		""" Check for ldap_public_folder_attribute_token and return folder """
 		destination_folder = []
 		result = self.searchquery(recipient)
 		if result:
 			tokenandfolder = (result[0][1]
-				.get(self.config['public_store_attribute'])[0].decode('utf-8'))
+				.get(self.config['public_folder_attribute'])[0].decode('utf-8'))
 			if tokenandfolder:
 				destination_folder = tokenandfolder.split(':')[1]
 				if destination_folder:
