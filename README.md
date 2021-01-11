@@ -470,7 +470,7 @@ kopanoResourceType: publicFolder:Public Stores/public
 ```
 
 messages to `public@example.com` will be delivered to the public store in `Public Stores/public`.
-The central  [attribute](https://documentation.kopano.io/kopanocore_administrator_manual/appendix_b.html#appendix-b-ldap-attribute-description) is `kopanoResourceType: publicFolder:Public Stores/public`. It contains a token and a folder name. The token match is case sensitive and there must be a colon `:` separating
+The central [attribute](https://documentation.kopano.io/kopanocore_administrator_manual/appendix_b.html#appendix-b-ldap-attribute-description) is `kopanoResourceType: publicFolder:Public Stores/public`. It contains a token and a folder name. The token match is case sensitive and there must be a colon `:` separating
 the token and the public folder name. The folder name can contain space and
 sub folders, which are distinguished using a forward slash `/`.
 
@@ -483,7 +483,7 @@ ldap_public_folder_attribute = kopanoResourceType
 ldap_public_folder_attribute_token = publicFolder
 ```
 
-As with other parameters, environment variables can be used to define them: `LDAP_PUBLIC_FOLDER_ATTRIBUTE=kopanoResourceType` and  `LDAP_PUBLIC_FOLDER_ATTRIBUTE_TOKEN=publicFolder`.
+As with other parameters, environment variables can be used to define them: `LDAP_PUBLIC_FOLDER_ATTRIBUTE=kopanoResourceType` and `LDAP_PUBLIC_FOLDER_ATTRIBUTE_TOKEN=publicFolder`.
 
 ## Shared folders
 

@@ -1,6 +1,10 @@
-""" movetopublicldap.py
+# SPDX-License-Identifier: AGPL-3.0-only
+""" (c) 2019 Kopano
 
-This is an LDAP lookup extension to the move to public plugin.
+movetopublicldap.py
+
+This is an LDAP lookup extension to the move to public plugin movetopublic.py.
+The changes to the original work are highlihgted below.
 
 The move to public plugin moves incoming messages to a folder in the public
 store. If folders are missing they will be created.
@@ -40,7 +44,8 @@ import ldap
 import os.path
 
 class KConfigParser(ZConfigParser):
-	""" Extends zconfig.ZConfigParser to also allow !directive in cfg files """
+	""" Extends zconfig.ZConfigParser to also allow !directive in cfg files.
+	Change type addition. """
 	def __init__(self, configfile, defaultconfig={}):
 		self.config = configparser.ConfigParser(defaults=defaultconfig,
 			delimiters=('='), comment_prefixes=('#', '!'))
@@ -70,7 +75,8 @@ class MoveToPublic(IMapiDAgentPlugin):
 		self.readconfig(self.CONFIGFILES, self.DEFAULTCONFIG)
 
 	def readconfig(self, configfiles=CONFIGFILES, defaultconfig=DEFAULTCONFIG):
-		""" Reads ldap.cfg and movetopublicldap.cfg into self.config """
+		""" Reads ldap.cfg and movetopublicldap.cfg into self.config.
+		Change type addition. """
 		options = [opt.split('_', 1)[1] for opt in defaultconfig.keys()]
 		config = None
 		for configfile in configfiles:
@@ -87,7 +93,8 @@ class MoveToPublic(IMapiDAgentPlugin):
 		return self.config
 
 	def searchfilter(self, recipient):
-		""" (&(uid=recipient)(kopanoResourceType=publicFolder:*)) """
+		""" (&(uid=recipient)(kopanoResourceType=publicFolder:*)).
+		Change type addition. """
 		return ("(&({}={})({}={}:*))"
 			.format(self.config['user_unique_attribute'],
 			recipient,
@@ -96,8 +103,8 @@ class MoveToPublic(IMapiDAgentPlugin):
 
 	def searchquery(self, recipient):
 		""" Query a LDAP/AD driectory server to lookup recipient using
-		search_base and return public_folder_attribute
-		"""
+		search_base and return public_folder_attribute.
+		Change type addition. """
 		if not self.config or not self.config['uri']:
 			self.logger.logError(("!--- ldap_uri is not defined."
 				" Please check {}" .format(self.CONFIGFILES)))
@@ -133,7 +140,8 @@ class MoveToPublic(IMapiDAgentPlugin):
 		return result
 
 	def publicfolder(self, recipient):
-		""" Check for ldap_public_folder_attribute_token and return folder """
+		""" Check for ldap_public_folder_attribute_token and return folder.
+		Change type addition. """
 		destination_folder = []
 		result = self.searchquery(recipient)
 		if result:
@@ -149,6 +157,8 @@ class MoveToPublic(IMapiDAgentPlugin):
 		return destination_folder
 
 	def PreDelivery(self, session, addrbook, store, folder, message):
+		""" Original code from movetopublic.py with call to self.publicfolder().
+		Change type modification. """
 
 		props = message.GetProps([PR_RECEIVED_BY_EMAIL_ADDRESS_W], 0)
 		if props[0].ulPropTag != PR_RECEIVED_BY_EMAIL_ADDRESS_W:

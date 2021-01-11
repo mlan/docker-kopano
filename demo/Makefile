@@ -149,6 +149,7 @@ userPassword: $(LDAP_TEST_USERPW)
 telephoneNumber: 0123 123456789
 title: First User
 kopanoAccount: 1
+kopanoAliases: $(LDAP_TEST_USERAS)@$(MAIL_DOMAIN)
 kopanoEnabledFeatures: imap
 kopanoEnabledFeatures: pop3
 endef
