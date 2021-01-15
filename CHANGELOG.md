@@ -1,3 +1,8 @@
+# 1.2.8
+
+- [test](test) Update to use `mlan/openldap:2`.
+- [demo](demo) Update to use `mlan/openldap:2`.
+
 # 1.2.7
 
 - [kopano](src/kopano/plugin/movetopublicldap.py) Add LDAP support to the [Move to public](https://documentation.kopano.io/kopanocore_administrator_manual/special_kc_configurations.html#move-to-public ) kopano-dagent python plugin.

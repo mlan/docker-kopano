@@ -22,9 +22,9 @@ services:
       - LDAP_URI=ldap://auth:389/
       - MYSQL_HOST=db
       - SMTP_SERVER=mta
-      - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
-      - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${LDAP_USEROBJ-posixAccount}
-      - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${LDAP_GROUPOBJ-posixGroup}
+      - LDAP_SEARCH_BASE=${AD_BASE-dc=example,dc=com}
+      - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${AD_USR_OB-kopano-user}
+      - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${AD_GRP_OB-kopano-group}
       - LDAP_GROUPMEMBERS_ATTRIBUTE_TYPE=dn
       - LDAP_PROPMAP=
       - DAGENT_PLUGINS=movetopublicldap
@@ -67,8 +67,8 @@ services:
       - SMTP_TLS_SECURITY_LEVEL=${SMTP_TLS_SECURITY_LEVEL-}
       - SMTP_TLS_WRAPPERMODE=${SMTP_TLS_WRAPPERMODE-no}
       - SMTPD_USE_TLS=yes
-      - LDAP_USER_BASE=ou=${LDAP_USEROU-users},${LDAP_BASE-dc=example,dc=com}
-      - LDAP_QUERY_FILTER_USER=(&(objectclass=${LDAP_USEROBJ-posixAccount})(mail=%s))
+      - LDAP_USER_BASE=ou=${AD_USR_OU-users},${AD_BASE-dc=example,dc=com}
+      - LDAP_QUERY_FILTER_USER=(&(objectclass=${AD_USR_OB-kopano-user})(mail=%s))
       - LDAP_QUERY_ATTRS_PASS=uid=user
       - REGEX_ALIAS=${REGEX_ALIAS-}
       - DKIM_SELECTOR=${DKIM_SELECTOR-default}
@@ -100,11 +100,13 @@ services:
       - /etc/localtime:/etc/localtime:ro        # Use host timezone
 
   auth:
-    image: mlan/openldap
+    image: mlan/openldap:2
     networks:
       - backend
+    command: --root-cn ${AD_ROOT_CN-admin} --root-pw ${AD_ROOT_PW-secret}
     environment:
-      - LDAP_LOGLEVEL=parse
+      - LDAPBASE=${AD_BASE-dc=example,dc=com}
+      - LDAPDEBUG=${AD_DEBUG-parse}
     volumes:
       - auth:/srv
       - /etc/localtime:/etc/localtime:ro        # Use host timezone
