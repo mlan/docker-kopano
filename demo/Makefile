@@ -287,15 +287,8 @@ mta-test_auth:
 	docker-compose exec mta doveadm auth test $(AD_USR_CN) $(AD_USR_PW)
 
 mta-test_imap: mta-hostaddr
-	curl imap://$(myhost) -X CAPABILITY $(CURL_DBG)
-	curl imap://$(myhost) -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
-
-mta-test_rimap:
-	docker-compose exec mta curl imap://app -X CAPABILITY
-	docker-compose exec mta curl imap://app -u $(AD_USR_CN):$(AD_USR_PW)
-
-mta-test_ldap: mta-debugtools
-	docker-compose exec mta ldapsearch -H ldap://auth:389 -xLLL -s base namingContexts
+	curl imaps://$(myhost)/inbox -s --ssl --anyauth -k -X "fetch 1 all" \
+	-u $(AD_USR_CN):$(AD_USR_PW)
 
 db-init:
 

@@ -1,8 +1,13 @@
+# Makefile
+#
+# test
+#
+
 -include    *.mk
 
-IMG_REPO ?= mlan/kopano
-IMG_VER  ?= latest
-_ver      = $(if $(findstring latest,$(1)),$(2),$(1)-$(2))
+TST_REPO ?= mlan/kopano
+TST_VER  ?= latest
+_ver      = $(if $(findstring latest,$(1)),$(2),$(2)-$(1))
 
 NET_NAME ?= test-net
 NET_ENV  ?= --network $(NET_NAME)
@@ -146,12 +151,12 @@ test-up_0: test-up-net
 	# run containers see if there are logs and stop.
 	#
 	#
-	docker run -d --name $(APP_NAME) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
+	docker run -d --name $(APP_NAME) $(TST_REPO):$(call _ver,$(TST_VER),core)
 	sleep $(TST_W8L1)
 	docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh'
 	docker rm -fv $(APP_NAME)
 	sleep $(TST_W8S1)
-	docker run -d --name $(APP_NAME) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
+	docker run -d --name $(APP_NAME) $(TST_REPO):$(call _ver,$(TST_VER),full)
 	sleep $(TST_W8L1)
 	docker container logs $(APP_NAME) | grep 'docker-entrypoint.sh'
 	docker rm -fv $(APP_NAME)
@@ -174,7 +179,7 @@ test-up_1: test-up-net test-up-deps_1 test-up-auth_1
 	# recv: curl imap://app
 	#
 	#
-	docker run -d $(APP_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
+	docker run -d $(APP_ENV) $(APP_VOL) $(TST_REPO):$(call _ver,$(TST_VER),core)
 
 test-up_2: test-up-net test-up-deps_2 test-up-auth_2
 	#
@@ -187,7 +192,7 @@ test-up_2: test-up-net test-up-deps_2 test-up-auth_2
 	# recv: curl imaps://app
 	#
 	#
-	docker run -d $(APPS_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),core)
+	docker run -d $(APPS_ENV) $(APP_VOL) $(TST_REPO):$(call _ver,$(TST_VER),core)
 
 test-up_3: test-up-net test-up-deps_3 test-up-auth_3 acme/acme.json
 	#
@@ -201,7 +206,7 @@ test-up_3: test-up-net test-up-deps_3 test-up-auth_3 acme/acme.json
 	# web: curl http://app
 	#
 	#
-	docker run -d $(APPA_ENV) $(APP_VOL) $(IMG_REPO):$(call _ver,$(IMG_VER),full)
+	docker run -d $(APPA_ENV) $(APP_VOL) $(TST_REPO):$(call _ver,$(TST_VER),full)
 
 test-up: test-up_1
 
@@ -246,7 +251,7 @@ test-up-deps_%:
 
 test-up-auth_%:
 	sleep $(TST_W8L1)
-	docker run $(TAW_ENV) $(IMG_REPO):$(call _ver,$(IMG_VER),core) \
+	docker run $(TAW_ENV) $(TST_REPO):$(call _ver,$(TST_VER),core) \
 	zcat /usr/share/doc/kopano/kopano.ldif.gz \
 	| docker exec -i $(AUT_NAME) ldapadd -Q
 	echo "$$LDIF_ADD_DATA" | docker exec -i $(AUT_NAME) ldapadd -Q

@@ -1,3 +1,8 @@
+# Makefile
+#
+# build
+#
+
 -include    *.mk
 
 #BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04 --build-arg ARCH=i386
@@ -5,13 +10,16 @@ BLD_ARG  ?=
 BLD_REPO ?= mlan/kopano
 BLD_VER  ?= latest
 BLD_TGT  ?= full
+
 SRC_CMD  ?= src/kopano/bin/kopano-webaddr.sh -VV
 SRC_VER  ?= $(shell $(SRC_CMD))
-IMG_REPO ?= $(BLD_REPO)
-IMG_VER  ?= $(BLD_VER)
+
+TST_REPO ?= $(BLD_REPO)
+TST_VER  ?= $(BLD_VER)
 TST_ENV  ?= -C test
 TST_TGTE ?= $(addprefix test-,all diff down env htop imap lmtp logs mail pop3 pull sh sv up)
 TST_TGTI ?= test_% test-up_%
+export TST_REPO TST_VER
 _version  = $(if $(findstring $(BLD_TGT),$(1)),\
 $(if $(findstring latest,$(2)),latest $(1) $(SRC_VER) $(1)-$(SRC_VER),$(2) $(1)-$(2)),\
 $(if $(findstring latest,$(2)),$(1) $(1)-$(SRC_VER),$(1)-$(2)))
