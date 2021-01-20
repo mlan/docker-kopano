@@ -5,8 +5,7 @@
 
 -include    *.mk
 
-#BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04 --build-arg ARCH=i386
-BLD_ARG  ?=
+BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04
 BLD_REPO ?= mlan/kopano
 BLD_VER  ?= latest
 BLD_TGT  ?= full
@@ -19,7 +18,9 @@ TST_VER  ?= $(BLD_VER)
 TST_ENV  ?= -C test
 TST_TGTE ?= $(addprefix test-,all diff down env htop imap lmtp logs mail pop3 pull sh sv up)
 TST_TGTI ?= test_% test-up_%
+
 export TST_REPO TST_VER
+
 _version  = $(if $(findstring $(BLD_TGT),$(1)),\
 $(if $(findstring latest,$(2)),latest $(1) $(SRC_VER) $(1)-$(SRC_VER),$(2) $(1)-$(2)),\
 $(if $(findstring latest,$(2)),$(1) $(1)-$(SRC_VER),$(1)-$(2)))
