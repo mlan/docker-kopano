@@ -67,14 +67,14 @@ services:
     image: mlan/kopano
     networks:
       - backend
-    ports:
-      - "127.0.0.1:8008:80"    # WebApp & EAS (alt. HTTP)
-      - "127.0.0.1:143:143"    # IMAP (not needed if all devices can use EAS)
-      - "127.0.0.1:110:110"    # POP3 (not needed if all devices can use EAS)
-      - "127.0.0.1:8080:8080"  # ICAL (not needed if all devices can use EAS)
-      - "127.0.0.1:993:993"    # IMAPS (not needed if all devices can use EAS)
-      - "127.0.0.1:995:995"    # POP3S (not needed if all devices can use EAS)
-      - "127.0.0.1:8443:8443"  # ICALS (not needed if all devices can use EAS)
+    ports:           # Expose ports to host interfaces
+      - "80:80"      # WebApp & EAS (alt. HTTP)
+      - "143:143"    # IMAP (not needed if all devices can use EAS)
+      - "110:110"    # POP3 (not needed if all devices can use EAS)
+      - "8080:8080"  # ICAL (not needed if all devices can use EAS)
+      - "993:993"    # IMAPS (not needed if all devices can use EAS)
+      - "995:995"    # POP3S (not needed if all devices can use EAS)
+      - "8443:8443"  # ICALS (not needed if all devices can use EAS)
     depends_on:
       - auth
       - db
@@ -84,10 +84,12 @@ services:
       - LDAP_URI=ldap://auth:389/
       - MYSQL_HOST=db
       - SMTP_SERVER=mta
-      - LDAP_SEARCH_BASE=${LDAP_BASE-dc=example,dc=com}
-      - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${LDAP_USEROBJ-posixAccount}
-      - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${LDAP_GROUPOBJ-posixGroup}
+      - LDAP_SEARCH_BASE=${AD_BASE-dc=example,dc=com}
+      - LDAP_USER_TYPE_ATTRIBUTE_VALUE=${AD_USR_OB-kopano-user}
+      - LDAP_GROUP_TYPE_ATTRIBUTE_VALUE=${AD_GRP_OB-kopano-group}
+      - LDAP_GROUPMEMBERS_ATTRIBUTE_TYPE=dn
       - LDAP_PROPMAP=
+      - DAGENT_PLUGINS=movetopublicldap
       - MYSQL_DATABASE=${MYSQL_DATABASE-kopano}
       - MYSQL_USER=${MYSQL_USER-kopano}
       - MYSQL_PASSWORD=${MYSQL_PASSWORD-secret}
@@ -97,8 +99,9 @@ services:
       - IMAPS_LISTEN=*:993                      # enable TLS
       - POP3S_LISTEN=*:995                      # enable TLS
       - ICALS_LISTEN=*:8443                     # enable TLS
-      - DISABLED_FEATURES=${DISABLED_FEATURES-} # also enable IMAP and POP3
+      - PLUGIN_SMIME_USER_DEFAULT_ENABLE_SMIME=true
       - SYSLOG_LEVEL=${SYSLOG_LEVEL-3}
+      - LOG_LEVEL=${LOG_LEVEL-3}
     volumes:
       - app-conf:/etc/kopano
       - app-atch:/var/lib/kopano/attachments
@@ -113,16 +116,16 @@ services:
     hostname: ${MAIL_SRV-mx}.${MAIL_DOMAIN-example.com}
     networks:
       - backend
-    ports:
-      - "127.0.0.1:25:25"      # SMTP
-      - "127.0.0.1:465:465"    # SMTPS authentication required
+    ports:           # Expose ports to host interfaces
+      - "25:25"      # SMTP
+      - "465:465"    # SMTPS authentication required
     depends_on:
       - auth
     environment: # Virgin config, ignored on restarts unless FORCE_CONFIG given.
       - LDAP_HOST=auth
       - VIRTUAL_TRANSPORT=lmtp:app:2003
-      - LDAP_USER_BASE=ou=${LDAP_USEROU-users},${LDAP_BASE-dc=example,dc=com}
-      - LDAP_QUERY_FILTER_USER=(&(objectclass=${LDAP_USEROBJ-posixAccount})(mail=%s))
+      - LDAP_USER_BASE=ou=${AD_USR_OU-users},${AD_BASE-dc=example,dc=com}
+      - LDAP_QUERY_FILTER_USER=(&(objectclass=${AD_USR_OB-kopano-user})(mail=%s))
     volumes:
       - mta:/srv
       - app-spam:/var/lib/kopano/spamd          # kopano-spamd integration
@@ -149,8 +152,10 @@ services:
     image: mlan/openldap
     networks:
       - backend
+    command: --root-cn ${AD_ROOT_CN-admin} --root-pw ${AD_ROOT_PW-secret}
     environment:
-      - LDAP_LOGLEVEL=parse
+      - LDAPBASE=${AD_BASE-dc=example,dc=com}
+      - LDAPDEBUG=${AD_DEBUG-parse}
     volumes:
       - auth:/srv
       - /etc/localtime:/etc/localtime:ro        # Use host timezone
@@ -170,7 +175,7 @@ volumes:
 
 ## Demo
 
-This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. Start with cloning the [github](https://github.com/mlan/docker-kopano) repository.
+This repository contains a [demo](demo) directory which hold the [docker-compose.yml](demo/docker-compose.yml) file as well as a [Makefile](demo/Makefile) which might come handy. To run the demo you need [docker-compose](https://docs.docker.com/compose/install/) installed. By default `curl` and `firefox` is expected to be installed, but if not, run `make utils-container` within the [demo](demo) directory once the repository has been cloned. The `make` utility works nicely with [bash-completion](https://github.com/scop/bash-completion) so it can be worth considering having it installed too. Once the dependencies are met, start with cloning the [github](https://github.com/mlan/docker-kopano) repository.
 
 ```bash
 git clone https://github.com/mlan/docker-kopano.git
@@ -182,7 +187,7 @@ From within the [demo](demo) directory you can start the containers by typing:
 make init
 ```
 
-Then you can assess WebApp on the URL [`http://localhost:8008`](http://localhost:8008) and log in with the user name `demo` and password `demo` . You can send yourself a test email by typing:
+Now you can assess WebApp on the custom docker network at URL `http://app` and log in with the user name `demo` and password `demo`.
 
 ```bash
 make web
@@ -194,7 +199,7 @@ You can send yourself a test email by typing:
 make test
 ```
 
-When you are done testing you can destroy the test containers by typing
+When you are done testing you can destroy the test containers and their volumes by typing:
 
 ```bash
 make destroy

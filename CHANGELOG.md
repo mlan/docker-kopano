@@ -1,3 +1,9 @@
+# 1.2.9
+
+- [kopano](src/kopano) Bug in kopano-dagent out-of-office now fixed.
+- [demo](demo) Make demo less dependent on that curl and firefox beeing installed on the host.
+- [demo](demo) Don't expose any ports on the host, avoiding potential conflicts.
+
 # 1.2.8
 
 - [test](test) Update to use `mlan/openldap:2`.

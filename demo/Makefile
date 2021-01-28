@@ -1,3 +1,8 @@
+# Makefile
+#
+# demo
+#
+
 -include    *.mk .env .init.env
 
 SRV_LIST ?= auth app db mta
@@ -10,7 +15,25 @@ SSL_MAIL  = auto
 SSL_PASS  = $(AD_USR_PW)
 #SSL_TRST  = $(SSL_SMIME)
 
-CURL_DBG ?= -v -s
+NET_NAME ?= $(COMPOSE_PROJECT_NAME)_backend
+CURL_OPT ?= -s -v
+TSSL_CMD ?= docker run -i --rm --network $(NET_NAME) drwetter/testssl.sh
+CURL_CMD ?= curl
+webb_cmd ?= firefox $(1) &
+APP_NAME  = app
+AUT_NAME  = auth
+AUW_NAME  = auth-web
+DB_NAME   = db
+DBW_NAME  = db-web
+MTA_NAME  = mta
+APP_FQDN ?= $(call dkr_srv_ip,$(APP_NAME))
+AUT_FQDN ?= $(call dkr_srv_ip,$(AUT_NAME))
+AUW_FQDN ?= $(call dkr_cnt_ip,$(AUW_NAME))
+DB_FQDN  ?= $(call dkr_srv_ip,$(DB_NAME))
+DBW_FQDN ?= $(call dkr_cnt_ip,$(DBW_NAME))
+MTA_FQDN ?= $(call dkr_srv_ip,$(MTA_NAME))
+
+MAIL_FROM ?= test@my-domain.biz
 
 variables:
 	make -pn | grep -A1 "^# makefile"| grep -v "^#\|^--" | sort | uniq
@@ -28,7 +51,7 @@ up:
 down:
 	docker-compose down
 
-destroy: auth-gui-down all-destroy_smime
+destroy: auth-web-down db-web-down all-destroy_smime
 	docker-compose down -v
 
 config:
@@ -74,14 +97,11 @@ $(addsuffix -sv,$(SRV_LIST)):
 $(addsuffix -diff,$(SRV_LIST)):
 	docker container diff $(COMPOSE_PROJECT_NAME)_$(patsubst %-diff,%,$@)_1
 
-$(addsuffix -hostaddr,$(SRV_LIST)):
-	$(eval myhost := $(call dkr_srv_ip,$(patsubst %-hostaddr,%,$@)))
-
 wait_%:
 	sleep $*
 
 web:
-	browse http://localhost:8008 &
+	$(call webb_cmd,http://$(APP_FQDN))
 
 auth-init: wait_3 auth-mod_conf auth-add_schema auth-add_data
 
@@ -180,6 +200,38 @@ kopanoSharedStoreOnly: 1
 kopanoResourceType: publicFolder:Public Stores/public
 endef
 
+define smtp_mail
+@printf "From: <$(2)>\nTo: <$(3)>\nDate: $$(date -R)\nSubject: $(4)\
+\n\nGreat news! You can receive email.\n" | tee /dev/tty \
+| $(CURL_CMD) $(1) -T - --mail-from $(2) --mail-rcpt $(3) $(CURL_OPT)
+endef
+
+define lmtp_mail
+printf "LHLO mx\nMAIL FROM: <$(2)>\nRCPT TO: <$(3)>\nDATA\
+\nFrom: <$(2)>\nTo: <$(3)>\nDate: $$(date -R)\nSubject: $(4)\
+\n\nGreat news! You can receive email.\n.\nQUIT\n" | tee /dev/tty \
+| $(CURL_CMD) $(1) -T - $(CURL_OPT)
+endef
+
+export define MAKE_UTILS_CONTAINER
+CURL_CMD ?= docker run -i --rm --network $(NET_NAME) curlimages/curl
+webb_cmd ?= docker run -d --rm --network $(NET_NAME) \
+-e DISPLAY=$$$$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
+-v $$$$(pwd)/ssl:/ssl kennethkl/firefox $$(1)
+APP_FQDN ?= $(APP_NAME)
+AUT_FQDN ?= $(AUT_NAME)
+AUW_FQDN ?= $(AUW_NAME)
+DB_FQDN  ?= $(DB_NAME)
+DBW_FQDN ?= $(DBW_NAME)
+MTA_FQDN ?= $(MTA_NAME)
+endef
+
+utils-container:
+	echo "$$MAKE_UTILS_CONTAINER" > utils-container.mk
+
+utils-default:
+	rm -f utils-container.mk
+
 auth-mod_conf:
 	echo "$$LDIF_MOD_CONF" | docker-compose exec -T auth ldapmodify -Q
 
@@ -204,15 +256,17 @@ auth-show_cat0:
 auth-show_cat1:
 	docker-compose exec auth slapcat -n1
 
-auth-gui-up:
-	docker run -d --name auth-gui --network demo_backend \
-	-p 127.0.0.1:8001:80 -e PHPLDAPADMIN_LDAP_HOSTS=auth \
-	-e PHPLDAPADMIN_HTTPS=false osixia/phpldapadmin || true
+auth-web: auth-web-up
 	sleep 2
-	firefox localhost:8001 &
+	$(call webb_cmd,http://$(AUW_FQDN))
 
-auth-gui-down:
-	docker rm -f auth-gui || true
+auth-web-up:
+	docker run -d --name $(AUW_NAME) --network $(NET_NAME) \
+	-e PHPLDAPADMIN_LDAP_HOSTS=auth -e PHPLDAPADMIN_HTTPS=false \
+	osixia/phpldapadmin || true
+
+auth-web-down:
+	docker rm -f $(AUW_NAME) || true
 
 mta-init:
 
@@ -220,30 +274,20 @@ mta-bayes:
 	docker-compose exec mta sh -c 'rm -f bayesian.database.gz && wget http://artinvoice.hu/spams/bayesian.database.gz && gunzip bayesian.database.gz && sa-learn --restore bayesian.database && chown -R amavis: /var/amavis/.spamassassin && rm -rf bayesian.database'
 
 mta-test_smtp:
-	printf "From: A tester <test@example.biz>\nTo: <$(AD_USR_CN)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! You can receive email.\n" \
-	| curl smtp://localhost -T - --mail-from test@example.biz \
-	--mail-rcpt $(AD_USR_CN)@$(MAIL_DOMAIN) $(CURL_DBG)
+	$(call smtp_mail,smtp://$(MTA_FQDN),$(MAIL_FROM),$(AD_USR_CN)@$(MAIL_DOMAIN),A SMTP test message.)
+
+mta-test_regexp:
+	$(call smtp_mail,smtp://$(MTA_FQDN),$(MAIL_FROM),$(AD_USR_CN)+info@$(MAIL_DOMAIN),A regexp SMTP test message.)
 
 mta-test_smtps:
-	printf "From: A tester <test@example.biz>\nTo: <$(AD_USR_CN)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTPS test message\n\nGreat news! You can receive secure email.\n" \
-	| curl smtps://localhost -T - --mail-from test@example.biz -k \
-	-u $(AD_USR_CN):$(AD_USR_PW) \
-	--mail-rcpt $(AD_USR_CN)@$(MAIL_DOMAIN) $(CURL_DBG)
-
-mta-test_smtp2:
-	printf "From: A info tester <test-info@example.biz>\nTo: <$(AD_USR_CN)-info@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message \n\nGreat news! $(AD_USR_CN)-info@$(MAIL_DOMAIN) can also receive email.\n" \
-	| curl smtp://localhost -T - --mail-from test@example.biz \
-	--mail-rcpt $(AD_USR_CN)@$(MAIL_DOMAIN) $(CURL_DBG)
+	$(call smtp_mail,smtps://$(MTA_FQDN),$(MAIL_FROM),$(AD_USR_CN)@$(MAIL_DOMAIN),A secure SMTPS test message.) \
+	-k -u $(AD_USR_CN):$(AD_USR_PW)
 
 mta-test_shared: all-test_quiet
-	printf "From: A tester <test@example.biz>\nTo: <$(AD_SHR_CN)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! A shared store can receive email.\n" \
-	| curl smtp://localhost -T - --mail-from test@example.biz \
-	--mail-rcpt $(AD_SHR_CN)@$(MAIL_DOMAIN) $(CURL_DBG)
+	$(call smtp_mail,smtp://$(MTA_FQDN),$(MAIL_FROM),$(AD_SHR_CN)@$(MAIL_DOMAIN),A shared SMTP test message.)
 
 mta-test_public: all-test_quiet
-	printf "From: A tester <test@example.biz>\nTo: <$(AD_PUB_CN)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A SMTP test message\n\nGreat news! A public store can receive email.\n" \
-	| curl smtp://localhost -T - --mail-from test@example.biz \
-	--mail-rcpt $(AD_PUB_CN)@$(MAIL_DOMAIN) $(CURL_DBG)
+	$(call smtp_mail,smtp://$(MTA_FQDN),$(MAIL_FROM),$(AD_PUB_CN)@$(MAIL_DOMAIN),A public SMTP test message.)
 
 mta-razor:
 	docker-compose exec mta run amavis_register_razor
@@ -260,11 +304,11 @@ mta-freshclam_nodns:
 mta-clamdtop:
 	docker-compose exec mta clamdtop
 
-mta-debugtools:
+mta-tools:
 	docker-compose exec mta apk --no-cache --update add \
 	nano less lsof htop openldap-clients bind-tools iputils strace
 
-mta-htop: mta-debugtools
+mta-htop: mta-tools
 	docker-compose exec mta htop
 
 mta-encrypt:
@@ -286,62 +330,67 @@ mta-flush_mailq:
 mta-test_auth:
 	docker-compose exec mta doveadm auth test $(AD_USR_CN) $(AD_USR_PW)
 
-mta-test_imap: mta-hostaddr
-	curl imaps://$(myhost)/inbox -s --ssl --anyauth -k -X "fetch 1 all" \
-	-u $(AD_USR_CN):$(AD_USR_PW)
+mta-test_imaps:
+	$(CURL_CMD) imaps://$(MTA_FQDN)//inbox -X "fetch 1 all" \
+	--ssl --anyauth -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
+
+mta-man:
+	docker-compose exec mta apk --no-cache --update add man-db man-pages \
+	postfix-doc cyrus-sasl-doc dovecot-doc spamassassin-doc clamav-doc razor-doc
 
 db-init:
 
 db-test:
 	docker-compose exec db mysqlshow -u $(MYSQL_USER) $(MYSQL_DATABASE) -p$(MYSQL_PASSWORD)
 
-db-gui-up:
-	docker run -d --name db-gui --network demo_backend \
-	-p 127.0.0.1:8002:80 -e PMA_HOST=db \
-	phpmyadmin/phpmyadmin || true
+db-web: db-web-up
 	sleep 2
-	firefox localhost:8002 &
+	$(call webb_cmd,http://$(DBW_FQDN))
 
-db-gui-down:
-	docker rm -f db-gui || true
+db-web-up:
+	docker run -d --name $(DBW_NAME) --network $(NET_NAME) \
+	-e PMA_HOST=db phpmyadmin/phpmyadmin || true
+
+db-web-down:
+	docker rm -f $(DBW_NAME) || true
 
 app-init: app-public_store app-create_smime
 
-app-debugtools:
+app-tools:
 	docker-compose exec app apt-get update
 	docker-compose exec app apt-get install --yes \
 	less nano ldap-utils htop net-tools lsof iputils-ping dnsutils strace
 
-app-htop: app-debugtools
+app-htop: app-tools
 	docker-compose exec app htop
 
 app-test_smtp: mta-test_smtp
 
-app-test_lmtp: app-hostaddr
-	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(AD_USR_CN)@$(MAIL_DOMAIN)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(AD_USR_CN)@$(MAIL_DOMAIN)>\nDate: $$(date)\nSubject: A LMTP test message from me to you\n\nDelete me, please \n.\nQUIT\n" | nc -C $(myhost) 2003
+app-test_lmtp:
+	$(call lmtp_mail,telnet://$(APP_FQDN):2003,$(MAIL_FROM),$(AD_USR_CN)@$(MAIL_DOMAIN),A LMTP test message.)
 
-app-test_all: all-test_muted app-test_imap app-test_pop3 app-test_ical app-test_imaps app-test_pop3s app-test_icals
+app-test_all: all-test_muted $(addprefix app-test_,imap pop3 ical imaps pop3s icals)
 
-app-test_imap: app-hostaddr
-	curl imap://$(myhost) -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
+app-test_imap:
+	$(CURL_CMD) imap://$(APP_FQDN) -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
 
-app-test_imaps: app-hostaddr
-	curl imaps://$(myhost) -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
+app-test_imaps:
+	$(CURL_CMD) imaps://$(APP_FQDN) -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
 
-app-test_pop3: app-hostaddr
-	curl pop3://$(myhost) -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
+app-test_pop3:
+	$(CURL_CMD) pop3://$(APP_FQDN) -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
 
-app-test_pop3s: app-hostaddr
-	curl pop3s://$(myhost) -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
+app-test_pop3s:
+	$(CURL_CMD) pop3s://$(APP_FQDN) -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
 
-app-test_ical: app-hostaddr
-	curl http://$(myhost):8080 -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
+app-test_ical:
+	$(CURL_CMD) http://$(APP_FQDN):8080 -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
 
-app-test_icals: app-hostaddr
-	curl https://$(myhost):8443 -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_DBG)
+app-test_icals:
+	$(CURL_CMD) https://$(APP_FQDN):8443 -k -u $(AD_USR_CN):$(AD_USR_PW) $(CURL_OPT)
 
-app-test_tls: app-hostaddr
-	docker run --rm -it --network demo_backend drwetter/testssl.sh app:993 || true
+app-test_tls:
+	$(TSSL_CMD) $(APP_FQDN):993 || true
 
 app-test_oof1:
 	docker-compose exec app kopano-oof -u $(AD_USR_CN) -m 1 -t "Dunno when I return"
@@ -352,7 +401,7 @@ app-test_oof0:
 app-show_user1:
 	docker-compose exec app kopano-admin --details $(AD_USR_CN)
 
-app-show_user2: app-debugtools
+app-show_user2: app-tools
 	docker-compose exec app ldapsearch -H ldap://auth:389 -xLLL -b $(AD_BASE) '*'
 
 app-show_sync:
@@ -364,18 +413,22 @@ app-create_store:
 app-public_store:
 	docker-compose exec app kopano-storeadm -P
 
+#app-add_user:
+#	docker-compose exec app kopano-admin -c $(AD_USR_CN) -p $(AD_USR_PW) \
+#	-e $(AD_USR_CN)@$(MAIL_DOMAIN) -f $(AD_USR_CN) -a 1
+
 $(addprefix app-parms_,archiver dagent gateway ical ldap search server spamd spooler):
 	docker-compose exec app run list_parms $(patsubst app-parms_%,%,$@)
 
 app-create_smime: all-create_smime
-	docker cp ssl/ca.crt $$(docker-compose ps -q app):/usr/local/share/ca-certificates/$(MAIL_DOMAIN)_CA.crt
+	docker cp ssl/ca.crt $(call dkr_srv_cnt,app):/usr/local/share/ca-certificates/$(MAIL_DOMAIN)_CA.crt
 	docker-compose exec app update-ca-certificates
 
 all-test_quiet:
-	$(eval CURL_DBG := -s -S )
+	$(eval CURL_OPT := -s -S )
 
 all-test_muted:
-	$(eval CURL_DBG := -s -S >/dev/null || true)
+	$(eval CURL_OPT := -s -S >/dev/null || true)
 
 all-create_smime: ssl/$(AD_USR_CN).p12
 

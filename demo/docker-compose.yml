@@ -5,14 +5,14 @@ services:
     image: mlan/kopano
     networks:
       - backend
-    ports:
-      - "127.0.0.1:8008:80"    # WebApp & EAS (alt. HTTP)
-      - "127.0.0.1:143:143"    # IMAP (not needed if all devices can use EAS)
-      - "127.0.0.1:110:110"    # POP3 (not needed if all devices can use EAS)
-      - "127.0.0.1:8080:8080"  # ICAL (not needed if all devices can use EAS)
-      - "127.0.0.1:993:993"    # IMAPS (not needed if all devices can use EAS)
-      - "127.0.0.1:995:995"    # POP3S (not needed if all devices can use EAS)
-      - "127.0.0.1:8443:8443"  # ICALS (not needed if all devices can use EAS)
+#    ports: # Uncomment to expose ports to host interfaces
+#      - "80:80"    # WebApp & EAS (alt. HTTP)
+#      - "143:143"    # IMAP (not needed if all devices can use EAS)
+#      - "110:110"    # POP3 (not needed if all devices can use EAS)
+#      - "8080:8080"  # ICAL (not needed if all devices can use EAS)
+#      - "993:993"    # IMAPS (not needed if all devices can use EAS)
+#      - "995:995"    # POP3S (not needed if all devices can use EAS)
+#      - "8443:8443"  # ICALS (not needed if all devices can use EAS)
     depends_on:
       - auth
       - db
@@ -54,16 +54,15 @@ services:
     hostname: ${MAIL_SRV-mx}.${MAIL_DOMAIN-example.com}
     networks:
       - backend
-    ports:
-      - "127.0.0.1:25:25"      # SMTP
-      - "127.0.0.1:465:465"    # SMTPS authentication required
+#    ports: # # Uncomment to expose ports to host interfaces
+#      - "25:25"      # SMTP
+#      - "465:465"    # SMTPS authentication required
     depends_on:
       - auth
     environment: # Virgin config, ignored on restarts unless FORCE_CONFIG given.
       - MESSAGE_SIZE_LIMIT=${MESSAGE_SIZE_LIMIT-25600000}
       - LDAP_HOST=auth
       - VIRTUAL_TRANSPORT=lmtp:app:2003
-#      - VIRTUAL_TRANSPORT=lmtp:unix:private/transport
       - SMTP_RELAY_HOSTAUTH=${SMTP_RELAY_HOSTAUTH-}
       - SMTP_TLS_SECURITY_LEVEL=${SMTP_TLS_SECURITY_LEVEL-}
       - SMTP_TLS_WRAPPERMODE=${SMTP_TLS_WRAPPERMODE-no}

@@ -236,10 +236,10 @@ test-up-net:
 	docker network create $(NET_NAME) 2>/dev/null || true
 
 test-down-net:
-	docker network rm $(NET_NAME) || true
-
-test-down: test-down_0
 	docker network rm $(NET_NAME) 2>/dev/null || true
+
+test-down: test-down_0 test-down-net acme-destroy
+	
 
 test-down_%:
 	@docker rm -fv $(APP_NAME) $(DB_NAME) $(AUT_NAME) $(TAW_NAME)  2>/dev/null || true
@@ -260,7 +260,6 @@ test-lmtp: test-lmtp_0
 test-lmtp_%:
 	printf "LHLO mx\nMAIL FROM: <test@example.biz>\nRCPT TO: <$(AD_USR_CN)@$(AD_DOM)>\nDATA\nFrom: A tester <test@example.biz>\nTo: <$(AD_USR_CN)@$(AD_DOM)>\nDate: $$(date)\nSubject: $(MAIL_SUB)$*\n$(MAIL_MSG)$*\n.\nQUIT\n"\
 	| nc -C $(call dkr_cnt_ip,$(APP_NAME)) 2003 # > /dev/null
-#	| nc -C localhost 2003 # > /dev/null
 	case $* in [1-3]) sleep $(TST_W8S1);; [4-9]) sleep $(TST_W8S2);; esac
 
 test-cfg_%:
