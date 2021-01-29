@@ -40,7 +40,7 @@ variables:
 
 test: all-test_quiet mta-test_smtp
 
-init: up auth-init db-init app-down app-up mta-init app-init
+init: up auth-init db-init app-restart mta-init app-init
 
 ps:
 	docker-compose ps
@@ -217,7 +217,8 @@ export define MAKE_UTILS_CONTAINER
 CURL_CMD ?= docker run -i --rm --network $(NET_NAME) curlimages/curl
 webb_cmd ?= docker run -d --rm --network $(NET_NAME) \
 -e DISPLAY=$$$$DISPLAY -v /tmp/.X11-unix:/tmp/.X11-unix \
--v $$$$(pwd)/ssl:/ssl kennethkl/firefox $$(1)
+-v /etc/localtime:/etc/localtime:ro -v $$$$(pwd)/ssl:/ssl \
+kennethkl/firefox $$(1)
 APP_FQDN ?= $(APP_NAME)
 AUT_FQDN ?= $(AUT_NAME)
 AUW_FQDN ?= $(AUW_NAME)
