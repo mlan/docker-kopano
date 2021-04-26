@@ -100,8 +100,7 @@ $(addsuffix -diff,$(SRV_LIST)):
 wait_%:
 	sleep $*
 
-web:
-	$(call webb_cmd,http://$(APP_FQDN))
+web: app-web
 
 auth-init: wait_3 auth-mod_conf auth-add_schema auth-add_data
 
@@ -294,7 +293,7 @@ mta-razor:
 	docker-compose exec mta run amavis_register_razor
 
 mta-apk_list:
-	docker-compose exec mta /bin/sh -c 'for pkg in $$(apk info 2>/dev/null); do printf "%9s  %s\n" $$(apk info -s $$pkg 2>/dev/null | sed -n "2{p;q}") $$pkg; done | sort'
+	docker-compose exec mta /bin/sh -c 'for pkg in $$(apk info 2>/dev/null); do printf "%9s %3s %s\n" $$(apk info -s $$pkg 2>/dev/null | sed -n "2{p;q}") $$pkg; done | sort | sort -k 2,2'
 
 mta-quarantine_list:
 	docker-compose exec mta amavis-ls
@@ -307,7 +306,7 @@ mta-clamdtop:
 
 mta-tools:
 	docker-compose exec mta apk --no-cache --update add \
-	nano less lsof htop openldap-clients bind-tools iputils strace
+	nano less lsof htop openldap-clients bind-tools iputils strace iproute2
 
 mta-htop: mta-tools
 	docker-compose exec mta htop
@@ -392,6 +391,9 @@ app-test_icals:
 
 app-test_tls:
 	$(TSSL_CMD) $(APP_FQDN):993 || true
+
+app-web:
+	$(call webb_cmd,http://$(APP_FQDN))
 
 app-test_oof1:
 	docker-compose exec app kopano-oof -u $(AD_USR_CN) -m 1 -t "Dunno when I return"

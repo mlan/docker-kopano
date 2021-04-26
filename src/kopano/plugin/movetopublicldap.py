@@ -48,7 +48,7 @@ class KConfigParser(ZConfigParser):
 	Change type addition. """
 	def __init__(self, configfile, defaultconfig={}):
 		self.config = configparser.ConfigParser(defaults=defaultconfig,
-			delimiters=('='), comment_prefixes=('#', '!'))
+			delimiters=('='), comment_prefixes=('#', '!'), allow_no_value=True)
 		self.readZConfig(configfile)
 
 class MoveToPublic(IMapiDAgentPlugin):

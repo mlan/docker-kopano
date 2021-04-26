@@ -1,5 +1,9 @@
 # Road map
 
+## Logs
+
+kopano-spamd and kopano-search does not use syslog. Try to fix.
+
 ## kDAV
 
 Consider integrating support for kDAV which provides CalDAV and CardDAV.

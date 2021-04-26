@@ -5,7 +5,7 @@
 
 -include    *.mk
 
-BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=18.04
+#BLD_ARG  ?= --build-arg DIST=ubuntu --build-arg REL=20.04
 BLD_REPO ?= mlan/kopano
 BLD_VER  ?= latest
 BLD_TGT  ?= full

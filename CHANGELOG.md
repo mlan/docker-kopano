@@ -1,3 +1,10 @@
+# 1.3.0
+
+- [docker](Dockerfile) Now use ubuntu:20.04 as base image.
+- [docker](Makefile) Don't set BLD_ARG in Makefile.
+- [kopano](src/kopano/plugin/movetopublicldap.py) Need explicitly to set `allow_no_value=True` due to update in `configparser.3.8.py`.
+- [demo](demo) Update to `mta-apk_list` target.
+
 # 1.2.9
 
 - [kopano](src/kopano) Bug in kopano-dagent out-of-office now fixed.

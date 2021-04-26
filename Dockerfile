@@ -2,7 +2,7 @@
 # build arguments, amd64 is the default
 #
 ARG	DIST=ubuntu
-ARG	REL=18.04
+ARG	REL=20.04
 ARG	ARCH
 
 FROM	${ARCH:+$ARCH/}$DIST:$REL AS base
