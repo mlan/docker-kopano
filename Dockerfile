@@ -236,7 +236,7 @@ ENV	DEBIAN_FRONTEND=noninteractive \
 #
 # Add Z-Push repository and install Z-Push configured to be used with Kopano and Apache
 #
-RUN	debaddr="$(kopano-webaddr.sh --deb final http://repo.z-hub.io/z-push: ${DIST} ${REL})" \
+RUN	debaddr="$(kopano-webaddr.sh --deb final https://download.kopano.io/zhub/z-push: ${DIST} ${REL})" \
 	&& echo "deb $debaddr/ /" > /etc/apt/sources.list.d/z-push.list \
 	&& wget -qO - $debaddr/Release.key | apt-key add - \
 	&& mkdir -p /var/lib/z-push && chown www-data: /var/lib/z-push \

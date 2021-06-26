@@ -8,8 +8,8 @@ _webroot="https://download.kopano.io/community"
 _debroot="http://repo.z-hub.io/z-push:"
 _component="core"
 _stage="final"
-_dist="debian"
-_rel="9"
+_dist="ubuntu"
+_rel="20.04"
 _arch="amd64"
 
 #

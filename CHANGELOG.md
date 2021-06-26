@@ -1,3 +1,9 @@
+# 1.3.1
+
+- [docker](Dockerfile) Update Z-Push package URL.
+- [kopano](src/kopano) Now use ubuntu:20.04 in `kopano-webaddr.sh`.
+- [docker](ROADMAP.md) Update roadmap.
+
 # 1.3.0
 
 - [docker](Dockerfile) Now use ubuntu:20.04 as base image.
